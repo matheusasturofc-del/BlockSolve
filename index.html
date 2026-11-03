@@ -1,0 +1,1033 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BlockSolve</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap">
+<style>
+/* Layout: one-screen toy table. HUD on top, the tray canvas fills the middle, chunky tool buttons at the bottom. */
+:root {
+  --sky: #cde6f2;
+  --sky-2: #eef7fb;
+  --ink: #1f2b52;
+  --ink-soft: #55628f;
+  --tray: #26335f;
+  --paper: #ffffff;
+  --paper-edge: #b7c9db;
+  --gold: #f6b81f;
+  --gold-dark: #c98a08;
+  --go: #2fbf71;
+  --go-dark: #1d8a50;
+  --font-display: 'Fredoka', 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: light;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-sizing: border-box;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: radial-gradient(120% 80% at 50% 0%, var(--sky-2), var(--sky));
+  color: var(--ink);
+  font-family: var(--font-body);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+[hidden] { display: none !important; }
+
+.app {
+  height: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px;
+}
+
+.hud { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.level { display: flex; flex-direction: column; line-height: 1; }
+.eyebrow {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.level-num { font-family: var(--font-display); font-weight: 700; font-size: 2.1rem; color: var(--ink); }
+.hud-right { display: flex; align-items: center; gap: 10px; }
+
+.coins {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--paper);
+  border-radius: 999px;
+  padding: 6px 14px 6px 6px;
+  box-shadow: 0 3px 0 var(--paper-edge);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+  transition: transform .2s;
+}
+.coins.pop { transform: scale(1.12); }
+.coin {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe28a, var(--gold) 55%, var(--gold-dark));
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.35);
+  flex: none;
+}
+.coin.sm { width: 14px; height: 14px; box-shadow: none; }
+
+.icon-btn {
+  width: 42px; height: 42px; border-radius: 14px; border: 0;
+  background: var(--paper); color: var(--ink);
+  box-shadow: 0 3px 0 var(--paper-edge);
+  display: grid; place-items: center; cursor: pointer;
+}
+.icon-btn svg { width: 22px; height: 22px; }
+.icon-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--paper-edge); }
+
+.status {
+  margin: 0;
+  min-height: 1.3em;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+  text-wrap: balance;
+}
+.status b { color: var(--ink); }
+
+.stage { flex: 1; min-height: 0; position: relative; }
+#board { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
+
+.tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.tool {
+  position: relative;
+  border: 0; border-radius: 18px;
+  background: var(--paper); color: var(--ink);
+  box-shadow: 0 5px 0 var(--paper-edge);
+  padding: 10px 6px 9px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-family: var(--font-display); font-weight: 600; font-size: 0.95rem;
+  cursor: pointer;
+  transition: transform .08s, box-shadow .08s;
+}
+.tool svg { width: 26px; height: 26px; }
+.tool:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--paper-edge); }
+.tool:disabled { opacity: .45; cursor: default; }
+.tool:disabled:active { transform: none; box-shadow: 0 5px 0 var(--paper-edge); }
+.price {
+  position: absolute; top: -8px; right: -4px;
+  display: flex; align-items: center; gap: 4px;
+  background: var(--ink); color: var(--paper);
+  font-family: var(--font-display); font-size: 0.8rem; font-weight: 600;
+  padding: 2px 8px 2px 4px; border-radius: 999px;
+}
+button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+
+.overlay {
+  position: fixed; inset: 0; z-index: 20;
+  display: grid; place-items: center;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: rgba(31, 43, 82, .45);
+  animation: fade .25s ease-out;
+}
+.card {
+  width: min(100%, 340px);
+  background: var(--paper);
+  border-radius: 28px;
+  padding: 26px 22px 22px;
+  text-align: center;
+  box-shadow: 0 8px 0 var(--paper-edge), 0 24px 60px rgba(31,43,82,.35);
+  display: flex; flex-direction: column; gap: 10px; align-items: center;
+  animation: rise .35s cubic-bezier(.2,1.4,.4,1);
+}
+.card h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 2rem; line-height: 1.1; text-wrap: balance; }
+.card p { margin: 0; }
+.reward {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-display); font-weight: 600; font-size: 1.3rem;
+}
+.summary { color: var(--ink-soft); font-weight: 700; }
+.cta {
+  margin-top: 8px;
+  width: 100%;
+  border: 0; border-radius: 18px;
+  background: var(--go); color: var(--paper);
+  box-shadow: 0 5px 0 var(--go-dark);
+  padding: 14px 18px;
+  font-family: var(--font-display); font-weight: 600; font-size: 1.25rem;
+  cursor: pointer;
+}
+.cta:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--go-dark); }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(110px + env(safe-area-inset-bottom, 0px)); z-index: 30;
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  background: var(--ink); color: var(--paper);
+  padding: 10px 16px; border-radius: 14px;
+  font-weight: 700; font-size: .95rem; text-align: center;
+  box-shadow: 0 8px 24px rgba(31,43,82,.3);
+  animation: fade .2s ease-out;
+}
+
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rise { from { transform: translateY(24px) scale(.94); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .overlay, .card, .toast { animation: none; }
+  .coins { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="hud">
+    <div class="level">
+      <span class="eyebrow">Nível</span>
+      <span class="level-num" id="levelNum">1</span>
+    </div>
+    <div class="hud-right">
+      <div class="coins" id="coinsChip" aria-label="Moedas"><span class="coin"></span><span id="coins">60</span></div>
+      <button class="icon-btn" id="soundBtn" type="button" aria-label="Som ligado" aria-pressed="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/>
+          <path id="soundWaves" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>
+          <path id="soundOff" d="M16 9.5l5 5M21 9.5l-5 5" hidden/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <p class="status" id="status">Arraste cada bloco até a parede da mesma cor.</p>
+
+  <main class="stage" id="stage">
+    <canvas id="board" aria-label="Tabuleiro do jogo"></canvas>
+  </main>
+
+  <footer class="tools">
+    <button class="tool" id="undoBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+      <span>Desfazer</span>
+    </button>
+    <button class="tool" id="restartBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+      <span>Reiniciar</span>
+    </button>
+    <button class="tool" id="hintBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></svg>
+      <span>Dica</span>
+      <span class="price"><span class="coin sm"></span><span id="hintPrice">15</span></span>
+    </button>
+  </footer>
+</div>
+
+<div class="overlay" id="winOverlay" hidden>
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="winTitle">
+    <span class="eyebrow" id="winEyebrow">Nível 1</span>
+    <h2 id="winTitle">Tabuleiro limpo!</h2>
+    <p class="summary" id="winSummary">8 movimentos</p>
+    <p class="reward"><span class="coin"></span><span id="winReward">+20</span></p>
+    <button class="cta" id="nextBtn" type="button">Próximo nível</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- Constants ---------- */
+const COLORS = {
+  red:    { base: '#ee4d4d', dark: '#b02f3a', light: '#ff9a90' },
+  yellow: { base: '#f7c62f', dark: '#c48b10', light: '#ffe796' },
+  purple: { base: '#8a5cf0', dark: '#5833b5', light: '#c2a6ff' },
+  blue:   { base: '#2f86e8', dark: '#1b56a8', light: '#8cc2ff' },
+  green:  { base: '#2fbf71', dark: '#1b8449', light: '#8ee8b5' },
+  orange: { base: '#f5892c', dark: '#bb5a12', light: '#ffc28c' },
+  pink:   { base: '#ee5fae', dark: '#b0357a', light: '#ffa8d6' },
+  teal:   { base: '#22bfc9', dark: '#11848d', light: '#8aeaf0' },
+};
+const COLOR_ORDER = ['red', 'yellow', 'purple', 'blue', 'green', 'orange', 'pink', 'teal'];
+const TRAY = '#26335f', TRAY_EDGE = '#1a2448', CELL_A = '#34437c', CELL_B = '#303f75';
+const RIM_F = 0.42;
+const WIN_REWARD = 20, HINT_PRICE = 15, START_COINS = 60;
+const DIRS = { top: [0, -1], bottom: [0, 1], left: [-1, 0], right: [1, 0] };
+
+/* ---------- Shapes ---------- */
+const BASE_SHAPES = [
+  { lvl: 1, c: [[0,0]] },
+  { lvl: 1, c: [[0,0],[1,0]] },
+  { lvl: 1, c: [[0,0],[1,0],[2,0]] },
+  { lvl: 1, c: [[0,0],[1,0],[0,1],[1,1]] },
+  { lvl: 2, c: [[0,0],[0,1],[1,1]] },
+  { lvl: 3, c: [[0,0],[1,0],[2,0],[1,1]] },
+  { lvl: 3, c: [[0,0],[0,1],[0,2],[1,2]] },
+  { lvl: 4, c: [[0,0],[1,0],[2,0],[3,0]] },
+  { lvl: 5, c: [[1,0],[2,0],[0,1],[1,1]] },
+  { lvl: 6, c: [[0,0],[1,0],[0,1],[1,1],[0,2]] },
+  { lvl: 7, c: [[0,0],[1,0],[0,1],[1,1],[0,2],[1,2]] },
+  { lvl: 8, c: [[0,0],[2,0],[0,1],[1,1],[2,1]] },
+  { lvl: 9, c: [[0,0],[1,0],[2,0],[1,1],[1,2]] },
+];
+
+function makeShape(cells) {
+  const mx = Math.min(...cells.map(c => c[0])), my = Math.min(...cells.map(c => c[1]));
+  cells = cells.map(([x, y]) => [x - mx, y - my]).sort((a, b) => a[1] - b[1] || a[0] - b[0]);
+  const w = Math.max(...cells.map(c => c[0])) + 1, h = Math.max(...cells.map(c => c[1])) + 1;
+  const colMin = Array(w).fill(99), colMax = Array(w).fill(-1), rowMin = Array(h).fill(99), rowMax = Array(h).fill(-1);
+  for (const [x, y] of cells) {
+    colMin[x] = Math.min(colMin[x], y); colMax[x] = Math.max(colMax[x], y);
+    rowMin[y] = Math.min(rowMin[y], x); rowMax[y] = Math.max(rowMax[y], x);
+  }
+  const set = new Set(cells.map(([x, y]) => x + ',' + y));
+  return { cells, w, h, colMin, colMax, rowMin, rowMax, set, key: cells.map(c => c.join(',')).join(';') };
+}
+const SHAPES = [];
+for (const base of BASE_SHAPES) {
+  const seen = new Set();
+  for (const mirror of [false, true]) {
+    let c = base.c.map(([x, y]) => [mirror ? -x : x, y]);
+    for (let r = 0; r < 4; r++) {
+      c = c.map(([x, y]) => [-y, x]);
+      const s = makeShape(c);
+      if (seen.has(s.key)) continue;
+      seen.add(s.key);
+      s.lvl = base.lvl;
+      SHAPES.push(s);
+    }
+  }
+}
+
+/* ---------- Grid logic (shared by generator, gameplay and hints) ---------- */
+function canPlace(shape, x, y, occ, selfId, W, H) {
+  for (const [cx, cy] of shape.cells) {
+    const X = x + cx, Y = y + cy;
+    if (X < 0 || Y < 0 || X >= W || Y >= H) return false;
+    const v = occ[Y * W + X];
+    if (v !== -1 && v !== selfId) return false;
+  }
+  return true;
+}
+function free(occ, i, selfId) { const v = occ[i]; return v === -1 || v === selfId; }
+
+// Returns the matching gate the block can slide out of from (x, y), or null.
+function exitAt(shape, x, y, color, occ, selfId, gates, W, H) {
+  for (const g of gates) {
+    if (g.color !== color) continue;
+    let ok = true;
+    if (g.side === 'top' || g.side === 'bottom') {
+      if (x < g.start || x + shape.w > g.start + g.len) continue;
+      if (g.side === 'top') {
+        if (y !== 0) continue;
+        for (let c = 0; c < shape.w && ok; c++)
+          for (let r = 0; r < y + shape.colMin[c]; r++) if (!free(occ, r * W + x + c, selfId)) { ok = false; break; }
+      } else {
+        if (y + shape.h !== H) continue;
+        for (let c = 0; c < shape.w && ok; c++)
+          for (let r = y + shape.colMax[c] + 1; r < H; r++) if (!free(occ, r * W + x + c, selfId)) { ok = false; break; }
+      }
+    } else {
+      if (y < g.start || y + shape.h > g.start + g.len) continue;
+      if (g.side === 'left') {
+        if (x !== 0) continue;
+        for (let r = 0; r < shape.h && ok; r++)
+          for (let c = 0; c < x + shape.rowMin[r]; c++) if (!free(occ, (y + r) * W + c, selfId)) { ok = false; break; }
+      } else {
+        if (x + shape.w !== W) continue;
+        for (let r = 0; r < shape.h && ok; r++)
+          for (let c = x + shape.rowMax[r] + 1; c < W; c++) if (!free(occ, (y + r) * W + c, selfId)) { ok = false; break; }
+      }
+    }
+    if (ok) return g;
+  }
+  return null;
+}
+
+// Breadth-first search over the positions one block can reach while the others stay still.
+function search(shape, sx, sy, color, occ, selfId, gates, W, H, collectAll) {
+  const dist = new Int16Array(W * H).fill(-1);
+  const qx = [sx], qy = [sy];
+  dist[sy * W + sx] = 0;
+  const all = [];
+  for (let qi = 0; qi < qx.length; qi++) {
+    const x = qx[qi], y = qy[qi], d = dist[y * W + x];
+    if (collectAll) all.push({ x, y, d });
+    const g = exitAt(shape, x, y, color, occ, selfId, gates, W, H);
+    if (g && !collectAll) return { found: true, x, y, dist: d, gate: g };
+    for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= W || ny >= H || dist[ny * W + nx] !== -1) continue;
+      if (!canPlace(shape, nx, ny, occ, selfId, W, H)) continue;
+      dist[ny * W + nx] = d + 1;
+      qx.push(nx); qy.push(ny);
+    }
+  }
+  return collectAll ? { all } : { found: false };
+}
+
+/* ---------- Level generator ----------
+   Blocks are placed one at a time. Each new block must be able to reach a gate of its
+   colour with every block placed before it standing still. Clearing the blocks in the
+   reverse order of placement therefore always works, so every level is solvable. */
+function rng(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function shuffle(arr, rnd) {
+  for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+  return arr;
+}
+function levelConfig(n) {
+  const W = Math.min(4 + Math.floor((n + 1) / 3), 7);
+  const H = Math.min(W + (n >= 4 ? 2 : 1), 9);
+  return {
+    W, H,
+    colors: Math.min(2 + Math.floor(n / 2), 6),
+    fill: Math.min(0.36 + n * 0.025, 0.62),
+    extraGates: n >= 7 ? Math.min(Math.floor((n - 4) / 3), 3) : 0,
+  };
+}
+function makeGates(cfg, rnd, palette) {
+  const sides = ['top', 'bottom', 'left', 'right'];
+  const gates = [];
+  const wanted = palette.slice();
+  for (let i = 0; i < cfg.extraGates; i++) wanted.push(palette[Math.floor(rnd() * palette.length)]);
+  for (const color of wanted) {
+    for (let t = 0; t < 80; t++) {
+      const side = sides[Math.floor(rnd() * 4)];
+      const L = side === 'top' || side === 'bottom' ? cfg.W : cfg.H;
+      const maxLen = Math.min(L - 1, 4);
+      const len = 2 + Math.floor(rnd() * (maxLen - 1));
+      const start = Math.floor(rnd() * (L - len + 1));
+      if (gates.some(g => g.side === side && start < g.start + g.len && g.start < start + len)) continue;
+      gates.push({ side, start, len, color });
+      break;
+    }
+  }
+  return gates;
+}
+function generateLevel(n) {
+  let fallback = null;
+  for (let attempt = 0; attempt < 40; attempt++) {
+    const rnd = rng(n * 7919 + attempt * 104729 + 17);
+    const cfg = levelConfig(n);
+    const { W, H } = cfg;
+    const palette = shuffle(COLOR_ORDER.slice(), rnd).slice(0, cfg.colors);
+    const gates = makeGates(cfg, rnd, palette);
+    const colors = [...new Set(gates.map(g => g.color))];
+    const pool = SHAPES.filter(s => s.lvl <= n && s.w <= W && s.h <= H);
+    const occ = new Int16Array(W * H).fill(-1);
+    const blocks = [];
+    const target = Math.round(cfg.fill * W * H);
+    let filled = 0, tries = 0, ci = Math.floor(rnd() * colors.length);
+    while (filled < target && tries < 400) {
+      tries++;
+      const color = colors[ci % colors.length];
+      const mine = gates.filter(g => g.color === color);
+      const fits = pool.filter(s => mine.some(g => (g.side === 'top' || g.side === 'bottom') ? s.w <= g.len : s.h <= g.len));
+      if (!fits.length) { ci++; continue; }
+      const shape = fits[Math.floor(rnd() * fits.length)];
+      if (filled + shape.cells.length > target + 2) continue;
+      const spots = [];
+      for (let y = 0; y <= H - shape.h; y++)
+        for (let x = 0; x <= W - shape.w; x++)
+          if (canPlace(shape, x, y, occ, -9, W, H)) spots.push({ x, y });
+      shuffle(spots, rnd);
+      const good = [];
+      for (const p of spots.slice(0, 30)) {
+        if (exitAt(shape, p.x, p.y, color, occ, -9, gates, W, H)) continue;
+        const r = search(shape, p.x, p.y, color, occ, -9, gates, W, H);
+        if (r.found) good.push({ ...p, d: r.dist });
+      }
+      if (!good.length) continue;
+      good.sort((a, b) => b.d - a.d);
+      const pick = good[Math.floor(rnd() * Math.min(3, good.length))];
+      const id = blocks.length;
+      blocks.push({ id, shape, color, x: pick.x, y: pick.y });
+      for (const [cx, cy] of shape.cells) occ[(pick.y + cy) * W + pick.x + cx] = id;
+      filled += shape.cells.length;
+      ci++;
+    }
+    const level = { n, W, H, gates, blocks };
+    const enough = blocks.length >= Math.min(2 + Math.floor(n / 2), 6) && filled >= target * 0.8;
+    if (enough) return level;
+    if (!fallback || blocks.length > fallback.blocks.length) fallback = level;
+  }
+  return fallback;
+}
+
+/* ---------- State ---------- */
+const $ = id => document.getElementById(id);
+const canvas = $('board'), ctx = canvas.getContext('2d');
+const stage = $('stage');
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const state = {
+  n: 1, coins: START_COINS, sound: true,
+  level: null, blocks: [], undo: [], moves: 0,
+  drag: null, hint: null, particles: [], won: false, shake: 0,
+};
+const geo = { cw: 0, ch: 0, dpr: 1, cs: 40, rim: 16, bx: 0, by: 0 };
+
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem('blocksolve:v1') || 'null');
+    if (s && typeof s === 'object') {
+      if (Number.isInteger(s.n) && s.n > 0) state.n = s.n;
+      if (Number.isFinite(s.coins)) state.coins = s.coins;
+      if (typeof s.sound === 'boolean') state.sound = s.sound;
+    }
+  } catch (e) { /* storage unavailable */ }
+}
+function save() {
+  try { localStorage.setItem('blocksolve:v1', JSON.stringify({ n: state.n, coins: state.coins, sound: state.sound })); }
+  catch (e) { /* storage unavailable */ }
+}
+
+function buildOcc(excludeId) {
+  const { W, H } = state.level;
+  const occ = new Int16Array(W * H).fill(-1);
+  for (const b of state.blocks) {
+    if (b.gone || b.id === excludeId) continue;
+    for (const [cx, cy] of b.shape.cells) occ[(b.y + cy) * W + b.x + cx] = b.id;
+  }
+  return occ;
+}
+const active = () => state.blocks.filter(b => !b.gone);
+
+function startLevel(n) {
+  state.n = n;
+  state.level = generateLevel(n);
+  resetBlocks();
+  layout();
+  updateHud();
+  save();
+}
+function resetBlocks() {
+  state.blocks = state.level.blocks.map(b => ({
+    id: b.id, shape: b.shape, color: b.color, x: b.x, y: b.y,
+    rx: b.x, ry: b.y, gone: false, exiting: null, removed: false,
+  }));
+  state.undo = []; state.moves = 0; state.drag = null; state.hint = null; state.won = false;
+  $('winOverlay').hidden = true;
+}
+
+/* ---------- HUD ---------- */
+function updateHud() {
+  $('levelNum').textContent = state.n;
+  $('coins').textContent = state.coins;
+  const left = active().length;
+  const status = $('status');
+  if (state.n === 1 && state.moves === 0) status.textContent = 'Arraste cada bloco até a parede da mesma cor.';
+  else status.innerHTML = `<b>${left}</b> ${left === 1 ? 'bloco restante' : 'blocos restantes'} · <b>${state.moves}</b> ${state.moves === 1 ? 'movimento' : 'movimentos'}`;
+  $('undoBtn').disabled = state.undo.length === 0;
+  $('soundBtn').setAttribute('aria-pressed', String(state.sound));
+  $('soundBtn').setAttribute('aria-label', state.sound ? 'Som ligado' : 'Som desligado');
+  $('soundWaves').toggleAttribute('hidden', !state.sound);
+  $('soundOff').toggleAttribute('hidden', state.sound);
+}
+let toastTimer = 0;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg; t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 2200);
+}
+function popCoins() {
+  const c = $('coinsChip');
+  c.classList.add('pop');
+  setTimeout(() => c.classList.remove('pop'), 220);
+}
+
+/* ---------- Sound ---------- */
+let actx = null, noiseBuf = null;
+function audio() {
+  if (!state.sound) return null;
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+  } catch (e) { return null; }
+  return actx;
+}
+function tone(freq, dur, type, vol, slideTo, delay = 0) {
+  const a = audio(); if (!a) return;
+  const t0 = a.currentTime + delay;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t0);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+  g.gain.setValueAtTime(vol, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g).connect(a.destination);
+  o.start(t0); o.stop(t0 + dur + 0.02);
+}
+function noise(dur, vol) {
+  const a = audio(); if (!a) return;
+  if (!noiseBuf) {
+    noiseBuf = a.createBuffer(1, a.sampleRate * 0.6, a.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+  s.buffer = noiseBuf; f.type = 'bandpass'; f.frequency.value = 1800; f.Q.value = 0.8;
+  g.gain.setValueAtTime(vol, a.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+  s.connect(f).connect(g).connect(a.destination);
+  s.start(); s.stop(a.currentTime + dur);
+}
+const sfx = {
+  pick: () => tone(540, 0.08, 'triangle', 0.14),
+  step: () => tone(260 + Math.random() * 40, 0.045, 'sine', 0.07),
+  bump: () => tone(120, 0.08, 'sine', 0.09),
+  exit: () => { tone(500, 0.3, 'triangle', 0.1, 1400); noise(0.35, 0.12); },
+  win: () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.22, 'triangle', 0.12, null, i * 0.09)),
+  deny: () => tone(180, 0.15, 'square', 0.05, 120),
+};
+function buzz(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* no vibration */ } }
+
+/* ---------- Layout ---------- */
+function layout() {
+  const r = stage.getBoundingClientRect();
+  geo.dpr = Math.min(window.devicePixelRatio || 1, 3);
+  geo.cw = r.width; geo.ch = r.height;
+  canvas.width = Math.round(r.width * geo.dpr);
+  canvas.height = Math.round(r.height * geo.dpr);
+  if (!state.level) return;
+  const { W, H } = state.level;
+  const cs = Math.min((r.width - 4) / (W + 2 * RIM_F), (r.height - 12) / (H + 2 * RIM_F), 86);
+  geo.cs = Math.max(cs, 10);
+  geo.rim = geo.cs * RIM_F;
+  geo.bx = (r.width - W * geo.cs) / 2;
+  geo.by = (r.height - H * geo.cs) / 2;
+}
+
+/* ---------- Input ---------- */
+function pointerPos(e) {
+  const r = canvas.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+function snapshot() { return state.blocks.map(b => ({ id: b.id, x: b.x, y: b.y, gone: b.gone })); }
+
+canvas.addEventListener('pointerdown', e => {
+  if (state.won || state.drag) return;
+  const p = pointerPos(e);
+  const { W, H } = state.level;
+  const cx = Math.floor((p.x - geo.bx) / geo.cs), cy = Math.floor((p.y - geo.by) / geo.cs);
+  if (cx < 0 || cy < 0 || cx >= W || cy >= H) return;
+  const occ = buildOcc();
+  const id = occ[cy * W + cx];
+  if (id === -1) return;
+  const b = state.blocks[id];
+  e.preventDefault();
+  try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  state.drag = {
+    b, pid: e.pointerId, occ,
+    offX: p.x - (geo.bx + b.x * geo.cs), offY: p.y - (geo.by + b.y * geo.cs),
+    snap: snapshot(), changed: false, bumped: false,
+  };
+  state.hint = null;
+  sfx.pick();
+});
+
+canvas.addEventListener('pointermove', e => {
+  const d = state.drag;
+  if (!d || e.pointerId !== d.pid) return;
+  const p = pointerPos(e);
+  const { W, H, gates } = state.level;
+  const b = d.b;
+  const fx = (p.x - d.offX - geo.bx) / geo.cs, fy = (p.y - d.offY - geo.by) / geo.cs;
+  for (let guard = 0; guard < 40; guard++) {
+    const ddx = fx - b.x, ddy = fy - b.y;
+    const sx = Math.abs(ddx) >= 0.5 ? Math.sign(ddx) : 0;
+    const sy = Math.abs(ddy) >= 0.5 ? Math.sign(ddy) : 0;
+    if (!sx && !sy) break;
+    const order = Math.abs(ddx) >= Math.abs(ddy) ? [[sx, 0], [0, sy]] : [[0, sy], [sx, 0]];
+    let moved = false;
+    for (const [dx, dy] of order) {
+      if (!dx && !dy) continue;
+      if (canPlace(b.shape, b.x + dx, b.y + dy, d.occ, b.id, W, H)) { b.x += dx; b.y += dy; moved = true; break; }
+    }
+    if (!moved) {
+      if (!d.bumped) { sfx.bump(); d.bumped = true; }
+      break;
+    }
+    d.bumped = false;
+    d.changed = true;
+    sfx.step();
+    const g = exitAt(b.shape, b.x, b.y, b.color, d.occ, b.id, gates, W, H);
+    if (g) { startExit(b, g); endDrag(); break; }
+  }
+});
+
+function endDrag() {
+  const d = state.drag;
+  if (!d) return;
+  try { canvas.releasePointerCapture(d.pid); } catch (err) { /* ignore */ }
+  if (d.changed) { state.undo.push(d.snap); state.moves++; }
+  state.drag = null;
+  updateHud();
+}
+canvas.addEventListener('pointerup', e => { if (state.drag && e.pointerId === state.drag.pid) endDrag(); });
+canvas.addEventListener('pointercancel', e => { if (state.drag && e.pointerId === state.drag.pid) endDrag(); });
+
+function startExit(b, gate) {
+  b.gone = true;
+  const extent = gate.side === 'top' || gate.side === 'bottom' ? b.shape.h : b.shape.w;
+  b.exiting = { gate, t: 0, dur: 0.28 + 0.07 * extent, extent: extent + 0.4 };
+  b.rx = b.x; b.ry = b.y;
+  sfx.exit();
+  buzz(25);
+}
+
+/* ---------- Buttons ---------- */
+$('undoBtn').addEventListener('click', () => {
+  if (state.won || state.drag || !state.undo.length) return;
+  const snap = state.undo.pop();
+  for (const s of snap) {
+    const b = state.blocks[s.id];
+    if (b.gone && !s.gone) { b.rx = s.x; b.ry = s.y; }
+    b.x = s.x; b.y = s.y; b.gone = s.gone;
+    if (!s.gone) { b.exiting = null; b.removed = false; }
+  }
+  state.moves = Math.max(0, state.moves - 1);
+  state.hint = null;
+  sfx.pick();
+  updateHud();
+});
+$('restartBtn').addEventListener('click', () => {
+  if (state.drag) return;
+  resetBlocks();
+  sfx.pick();
+  updateHud();
+});
+$('hintBtn').addEventListener('click', () => {
+  if (state.won || state.drag) return;
+  if (state.coins < HINT_PRICE) { sfx.deny(); toast(`Você precisa de ${HINT_PRICE} moedas para uma dica. Termine níveis para ganhar mais.`); return; }
+  const h = findHint();
+  if (!h) { sfx.deny(); toast('Nenhum caminho daqui. Use Desfazer ou Reiniciar.'); return; }
+  state.coins -= HINT_PRICE;
+  popCoins(); save();
+  state.hint = { ...h, t: 0 };
+  sfx.pick();
+  updateHud();
+});
+$('soundBtn').addEventListener('click', () => {
+  state.sound = !state.sound;
+  save(); updateHud();
+  if (state.sound) sfx.pick();
+});
+$('nextBtn').addEventListener('click', () => {
+  startLevel(state.n + 1);
+  sfx.pick();
+});
+
+/* ---------- Hints ---------- */
+function findHint() {
+  const { W, H, gates } = state.level;
+  const occ = buildOcc();
+  let best = null;
+  for (const b of active()) {
+    const r = search(b.shape, b.x, b.y, b.color, occ, b.id, gates, W, H);
+    if (r.found && (!best || r.dist < best.dist)) best = { block: b, x: r.x, y: r.y, dist: r.dist, kind: 'exit' };
+  }
+  if (best) return best;
+  // Nothing can leave right now: look for one move that frees another block.
+  for (const a of active()) {
+    const spots = search(a.shape, a.x, a.y, a.color, occ, a.id, gates, W, H, true).all;
+    for (const s of spots) {
+      if (s.d === 0) continue;
+      const occ2 = buildOcc(a.id);
+      for (const [cx, cy] of a.shape.cells) occ2[(s.y + cy) * W + s.x + cx] = a.id;
+      for (const b of active()) {
+        if (b === a) continue;
+        if (search(b.shape, b.x, b.y, b.color, occ2, b.id, gates, W, H).found) return { block: a, x: s.x, y: s.y, kind: 'move' };
+      }
+    }
+  }
+  return null;
+}
+
+/* ---------- Particles ---------- */
+function spawnParticles(b, dt) {
+  const { gate } = b.exiting;
+  const { cs, rim, bx, by } = geo;
+  const { W, H } = state.level;
+  const count = Math.ceil(b.shape.cells.length * dt * (reduceMotion ? 12 : 55));
+  const col = COLORS[b.color];
+  for (let i = 0; i < count; i++) {
+    const along = gate.start + Math.random() * gate.len;
+    let x, y, vx, vy;
+    const spread = (Math.random() - 0.5) * cs * 3;
+    const push = (2 + Math.random() * 3.5) * cs;
+    if (gate.side === 'top') { x = bx + along * cs; y = by - rim; vx = spread; vy = -push; }
+    else if (gate.side === 'bottom') { x = bx + along * cs; y = by + H * cs + rim; vx = spread; vy = push * 0.6; }
+    else if (gate.side === 'left') { x = bx - rim; y = by + along * cs; vx = -push; vy = spread - cs; }
+    else { x = bx + W * cs + rim; y = by + along * cs; vx = push; vy = spread - cs; }
+    state.particles.push({
+      x, y, vx, vy,
+      size: cs * (0.08 + Math.random() * 0.14),
+      rot: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 12,
+      life: 0, max: 0.6 + Math.random() * 0.5,
+      color: Math.random() < 0.3 ? col.light : (Math.random() < 0.5 ? col.base : col.dark),
+    });
+  }
+}
+
+/* ---------- Update ---------- */
+function update(dt) {
+  const k = Math.min(1, dt * 24);
+  for (const b of state.blocks) {
+    if (b.removed) continue;
+    if (b.exiting) {
+      b.exiting.t += dt / b.exiting.dur;
+      spawnParticles(b, dt);
+      if (b.exiting.t >= 1) { b.exiting = null; b.removed = true; }
+      continue;
+    }
+    if (!b.gone) { b.rx += (b.x - b.rx) * k; b.ry += (b.y - b.ry) * k; }
+  }
+  const grav = geo.cs * 16;
+  state.particles = state.particles.filter(p => {
+    p.life += dt;
+    p.vy += grav * dt;
+    p.vx *= 1 - dt * 1.5;
+    p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt;
+    return p.life < p.max && p.y < geo.ch + 40;
+  });
+  if (state.hint) { state.hint.t += dt; if (state.hint.t > 4) state.hint = null; }
+  if (!state.won && state.blocks.length && state.blocks.every(b => b.removed)) {
+    state.won = true;
+    state.coins += WIN_REWARD;
+    save();
+    setTimeout(showWin, 380);
+  }
+}
+function showWin() {
+  sfx.win(); buzz([20, 40, 30]);
+  $('winEyebrow').textContent = `Nível ${state.n}`;
+  $('winSummary').textContent = `${state.moves} ${state.moves === 1 ? 'movimento' : 'movimentos'}`;
+  $('winReward').textContent = `+${WIN_REWARD}`;
+  $('winOverlay').hidden = false;
+  updateHud(); popCoins();
+  $('nextBtn').focus({ preventScroll: true });
+}
+
+/* ---------- Drawing ---------- */
+function rr(x, y, w, h, r) {
+  r = Math.max(0, Math.min(r, w / 2, h / 2));
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+// One merged outline for a polyomino: rounded cells plus bridges across shared edges.
+function unionPath(shape, ox, oy, inset, r) {
+  const cs = geo.cs, s = shape.set, j = inset + r;
+  ctx.beginPath();
+  for (const [cx, cy] of shape.cells) {
+    const x = ox + cx * cs, y = oy + cy * cs;
+    rr(x + inset, y + inset, cs - 2 * inset, cs - 2 * inset, r);
+    const right = s.has((cx + 1) + ',' + cy), down = s.has(cx + ',' + (cy + 1));
+    if (right) ctx.rect(x + cs - j, y + inset, 2 * j, cs - 2 * inset);
+    if (down) ctx.rect(x + inset, y + cs - j, cs - 2 * inset, 2 * j);
+    if (right && down && s.has((cx + 1) + ',' + (cy + 1))) ctx.rect(x + cs - j, y + cs - j, 2 * j, 2 * j);
+  }
+}
+
+function drawTray() {
+  const { cs, rim, bx, by } = geo;
+  const { W, H } = state.level;
+  const x = bx - rim, y = by - rim, w = W * cs + 2 * rim, h = H * cs + 2 * rim, r = rim * 1.1;
+  ctx.fillStyle = 'rgba(31,43,82,.16)'; ctx.beginPath(); rr(x + cs * 0.1, y + cs * 0.3, w - cs * 0.2, h, r); ctx.fill();
+  ctx.fillStyle = TRAY_EDGE; ctx.beginPath(); rr(x, y + cs * 0.12, w, h, r); ctx.fill();
+  ctx.fillStyle = TRAY; ctx.beginPath(); rr(x, y, w, h, r); ctx.fill();
+  // recessed floor
+  ctx.fillStyle = TRAY_EDGE; ctx.beginPath(); rr(bx - 3, by - 3, W * cs + 6, H * cs + 6, cs * 0.16); ctx.fill();
+  for (let gy = 0; gy < H; gy++) for (let gx = 0; gx < W; gx++) {
+    ctx.fillStyle = (gx + gy) % 2 ? CELL_A : CELL_B;
+    ctx.beginPath(); rr(bx + gx * cs + 2, by + gy * cs + 2, cs - 4, cs - 4, cs * 0.14); ctx.fill();
+  }
+  // a soft inner shadow along the top edge of the floor
+  const g = ctx.createLinearGradient(0, by, 0, by + cs * 0.5);
+  g.addColorStop(0, 'rgba(10,16,40,.35)'); g.addColorStop(1, 'rgba(10,16,40,0)');
+  ctx.fillStyle = g; ctx.fillRect(bx, by, W * cs, cs * 0.5);
+}
+
+function gateRect(g) {
+  const { cs, rim, bx, by } = geo;
+  const { W, H } = state.level;
+  const pad = cs * 0.06, t = rim * 0.86, off = (rim - t) / 2;
+  if (g.side === 'top') return { x: bx + g.start * cs + pad, y: by - rim + off, w: g.len * cs - 2 * pad, h: t };
+  if (g.side === 'bottom') return { x: bx + g.start * cs + pad, y: by + H * cs + off, w: g.len * cs - 2 * pad, h: t };
+  if (g.side === 'left') return { x: bx - rim + off, y: by + g.start * cs + pad, w: t, h: g.len * cs - 2 * pad };
+  return { x: bx + W * cs + off, y: by + g.start * cs + pad, w: t, h: g.len * cs - 2 * pad };
+}
+function drawGates(time) {
+  const sel = state.drag ? state.drag.b.color : null;
+  for (const g of state.level.gates) {
+    const col = COLORS[g.color];
+    const r = gateRect(g);
+    const glow = sel === g.color;
+    const depth = geo.rim * 0.16;
+    if (glow) {
+      ctx.save();
+      ctx.shadowColor = col.light; ctx.shadowBlur = geo.cs * (0.35 + 0.2 * Math.sin(time * 8));
+      ctx.fillStyle = col.base; ctx.beginPath(); rr(r.x, r.y, r.w, r.h, r.h * 0.35); ctx.fill();
+      ctx.restore();
+    }
+    ctx.fillStyle = col.dark; ctx.beginPath(); rr(r.x, r.y + depth, r.w, r.h, Math.min(r.w, r.h) * 0.35); ctx.fill();
+    ctx.fillStyle = col.base; ctx.beginPath(); rr(r.x, r.y, r.w, r.h, Math.min(r.w, r.h) * 0.35); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.22)';
+    ctx.beginPath(); rr(r.x + 3, r.y + 3, r.w - 6, Math.min(r.h, r.w) * 0.3, 3); ctx.fill();
+    // arrow pointing out of the board
+    const [dx, dy] = DIRS[g.side];
+    const cx = r.x + r.w / 2, cy = r.y + r.h / 2, s = Math.min(r.w, r.h) * 0.32;
+    const px = -dy, py = dx;
+    ctx.fillStyle = 'rgba(255,255,255,.92)';
+    ctx.beginPath();
+    ctx.moveTo(cx + dx * s, cy + dy * s);
+    ctx.lineTo(cx - dx * s * 0.7 + px * s, cy - dy * s * 0.7 + py * s);
+    ctx.lineTo(cx - dx * s * 0.7 - px * s, cy - dy * s * 0.7 - py * s);
+    ctx.closePath(); ctx.fill();
+  }
+}
+
+function blockOrigin(b) {
+  let x = b.rx, y = b.ry;
+  if (b.exiting) {
+    const [dx, dy] = DIRS[b.exiting.gate.side];
+    const t = Math.min(1, b.exiting.t), e = t * t;
+    x = b.x + dx * e * b.exiting.extent; y = b.y + dy * e * b.exiting.extent;
+  }
+  return { ox: geo.bx + x * geo.cs, oy: geo.by + y * geo.cs };
+}
+function drawBlockDepth(b, ox, oy, lift) {
+  const cs = geo.cs, col = COLORS[b.color], d = cs * 0.1;
+  ctx.fillStyle = col.dark;
+  unionPath(b.shape, ox, oy + d - lift, cs * 0.05, cs * 0.2); ctx.fill();
+  if (lift) { unionPath(b.shape, ox, oy + d * 0.4, cs * 0.05, cs * 0.2); ctx.fill(); }
+}
+function drawBlockTop(b, ox, oy, lift) {
+  const cs = geo.cs, col = COLORS[b.color];
+  ctx.fillStyle = col.base;
+  unionPath(b.shape, ox, oy - lift, cs * 0.05, cs * 0.2); ctx.fill();
+  for (const [cx, cy] of b.shape.cells) {
+    const x = ox + cx * cs, y = oy - lift + cy * cs;
+    const g = ctx.createLinearGradient(0, y + cs * 0.15, 0, y + cs * 0.85);
+    g.addColorStop(0, 'rgba(255,255,255,.34)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); rr(x + cs * 0.17, y + cs * 0.15, cs * 0.66, cs * 0.66, cs * 0.14); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.45)';
+    ctx.beginPath(); ctx.ellipse(x + cs * 0.32, y + cs * 0.27, cs * 0.08, cs * 0.045, -0.5, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function draw(time) {
+  const { dpr, cw, ch, cs, bx, by } = geo;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cw, ch);
+  if (!state.level) return;
+  const { W, H } = state.level;
+  drawTray();
+  drawGates(time);
+
+  const dragged = state.drag ? state.drag.b : null;
+  const resting = state.blocks.filter(b => !b.gone);
+  const lift = cs * 0.06;
+
+  // hint ghost
+  if (state.hint) {
+    const h = state.hint, b = h.block;
+    if (!b.gone) {
+      ctx.save();
+      ctx.globalAlpha = 0.3 + 0.2 * Math.sin(h.t * 6);
+      drawBlockTop(b, bx + h.x * cs, by + h.y * cs, 0);
+      ctx.restore();
+    }
+  }
+
+  for (const b of resting) {
+    const { ox, oy } = blockOrigin(b);
+    const isSel = b === dragged || (state.hint && state.hint.block === b);
+    if (isSel) {
+      const pulse = b === dragged ? 1 : 0.6 + 0.4 * Math.sin(state.hint.t * 6);
+      ctx.save(); ctx.globalAlpha = pulse;
+      ctx.fillStyle = '#ffffff';
+      unionPath(b.shape, ox, oy - (b === dragged ? lift : 0), -cs * 0.03, cs * 0.26); ctx.fill();
+      ctx.restore();
+    }
+    drawBlockDepth(b, ox, oy, b === dragged ? lift : 0);
+  }
+  for (const b of resting) {
+    const { ox, oy } = blockOrigin(b);
+    drawBlockTop(b, ox, oy, b === dragged ? lift : 0);
+  }
+
+  // blocks sliding out are clipped by the board edge, as if swallowed by the gate
+  const leaving = state.blocks.filter(b => b.exiting);
+  if (leaving.length) {
+    ctx.save();
+    ctx.beginPath(); ctx.rect(bx, by, W * cs, H * cs); ctx.clip();
+    for (const b of leaving) { const { ox, oy } = blockOrigin(b); drawBlockDepth(b, ox, oy, 0); drawBlockTop(b, ox, oy, 0); }
+    ctx.restore();
+  }
+
+  for (const p of state.particles) {
+    const a = 1 - p.life / p.max;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, a * 1.6));
+    ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+    ctx.restore();
+  }
+}
+
+let last = 0;
+function frame(ts) {
+  const dt = Math.min(0.05, last ? (ts - last) / 1000 : 0.016);
+  last = ts;
+  if (state.level) { update(dt); draw(ts / 1000); }
+  requestAnimationFrame(frame);
+}
+
+/* ---------- Boot ---------- */
+function start(data) {
+  load();
+  if (data && Number.isInteger(data.n)) { state.n = data.n; state.coins = data.coins ?? state.coins; state.sound = data.sound ?? state.sound; }
+  new ResizeObserver(() => layout()).observe(stage);
+  window.addEventListener('resize', layout);
+  startLevel(state.n);
+  requestAnimationFrame(frame);
+}
+window.claude?.hot?.snapshot?.(() => ({ n: state.n, coins: state.coins, sound: state.sound }));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+
+// Small hook used by automated tests.
+window.__blocksolve = { state, generateLevel, findHint, startExit, startLevel, buildOcc, exitAt, search };
+})();
+</script>
+</body>
+</html>
