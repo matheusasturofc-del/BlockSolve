@@ -184,6 +184,13 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
   cursor: pointer;
 }
 .cta:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--go-dark); }
+.end-card h2 { font-size: 2.3rem; }
+.end-card .thanks {
+  font-family: var(--font-display); font-weight: 700; font-size: 1.45rem; letter-spacing: .02em;
+  background: linear-gradient(90deg, #ee4d4d, #f5892c, #e0a800, #2fbf71, #2f86e8, #8a5cf0);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-wrap: balance;
+}
 .cta.quiet { background: var(--mist); color: var(--ink); box-shadow: 0 5px 0 var(--paper-edge); margin-top: 0; }
 .cta.quiet:active { box-shadow: 0 1px 0 var(--paper-edge); }
 
@@ -436,6 +443,18 @@ body[data-bg="sketch"] {
     <p class="summary" id="winSummary">8 movimentos</p>
     <p class="reward"><span class="coin"></span><span id="winReward">+20</span></p>
     <button class="cta" id="nextBtn" type="button">Próximo nível</button>
+  </div>
+</div>
+
+<div class="overlay" id="endOverlay" hidden>
+  <div class="card end-card" role="dialog" aria-modal="true" aria-labelledby="endTitle">
+    <span class="eyebrow" id="endEyebrow">Último nível</span>
+    <h2 id="endTitle">Você chegou ao fim!</h2>
+    <p class="body">Logo lançará mais fases.</p>
+    <p class="thanks">OBRIGADO POR JOGAR!</p>
+    <p class="reward"><span class="coin"></span><span id="endReward">+20</span></p>
+    <button class="cta" id="endHome" type="button">Voltar ao início</button>
+    <button class="cta quiet" id="endEndless" type="button">Jogar o modo infinito</button>
   </div>
 </div>
 
@@ -1243,6 +1262,7 @@ function resetBlocks() {
   state.undo = []; state.moves = 0; state.drag = null; state.hint = null; state.won = false; state.lost = false; state.flights = [];
   $('winOverlay').hidden = true;
   $('loseOverlay').hidden = true;
+  $('endOverlay').hidden = true;
 }
 
 /* ---------- HUD ---------- */
@@ -1706,6 +1726,8 @@ $('soundBtn').addEventListener('click', () => {
   save(); updateHud();
   if (state.sound) sfx.pick();
 });
+$('endHome').addEventListener('click', () => { $('endOverlay').hidden = true; sfx.pick(); showScreen('home'); });
+$('endEndless').addEventListener('click', () => { $('endOverlay').hidden = true; startLevel(CAMPAIGN + 1); sfx.pick(); });
 $('nextBtn').addEventListener('click', () => { startLevel(state.n + 1); sfx.pick(); });
 $('introBtn').addEventListener('click', () => { $('introOverlay').hidden = true; sfx.pick(); });
 $('levelsBtn').addEventListener('click', () => { if (!state.drag) { sfx.pick(); showScreen('levels'); } });
@@ -2088,7 +2110,20 @@ function update(dt) {
     setTimeout(showWin, 380);
   }
 }
+function showEnd() {
+  sfx.win(); buzz([30, 50, 30, 50, 60]);
+  const { cw, ch } = geo;
+  const party = Object.values(COLORS).flatMap(c => [c.base, c.light]);
+  for (let i = 0; i < (reduceMotion ? 2 : 6); i++)
+    setTimeout(() => burst(cw * (0.2 + Math.random() * 0.6), ch * (0.25 + Math.random() * 0.4), reduceMotion ? 10 : 40, party, 6, 3), i * 180);
+  $('endEyebrow').textContent = `Nível ${CAMPAIGN} de ${CAMPAIGN}`;
+  $('endReward').textContent = `+${WIN_REWARD + state.levelCoins}`;
+  $('endOverlay').hidden = false;
+  updateHud(); popCoins();
+  $('endHome').focus({ preventScroll: true });
+}
 function showWin() {
+  if (state.n === CAMPAIGN) { showEnd(); return; }
   sfx.win(); buzz([20, 40, 30]);
   const last = state.n === CAMPAIGN;
   $('winEyebrow').textContent = state.n > CAMPAIGN ? `Modo infinito · nível ${state.n}` : `Nível ${state.n} de ${CAMPAIGN}`;
@@ -2776,6 +2811,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 window.blocksolveBack = () => {
   if (!$('introOverlay').hidden) { $('introBtn').click(); return true; }
   if (!$('winOverlay').hidden) { $('winOverlay').hidden = true; showScreen('levels'); return true; }
+  if (!$('endOverlay').hidden) { $('endOverlay').hidden = true; showScreen('home'); return true; }
   if (!$('loseOverlay').hidden) { $('loseOverlay').hidden = true; resetBlocks(); showScreen('levels'); return true; }
   if (state.screen === 'game') { if (state.drag) endDrag(); showScreen('levels'); return true; }
   if (state.screen === 'levels' || state.screen === 'options' || state.screen === 'shop') { showScreen('home'); return true; }
