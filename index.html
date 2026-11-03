@@ -1080,52 +1080,103 @@ canvas.addEventListener('pointerdown', e => {
   state.drag = {
     b, pid: e.pointerId, occ, open: openGates(), locked: state.gates.filter(isLocked),
     offX: p.x - (geo.bx + b.x * geo.cs), offY: p.y - (geo.by + b.y * geo.cs),
-    snap: snapshot(), changed: false, bumped: false, warned: false,
+    fx: b.x, fy: b.y, cellX: b.x, cellY: b.y,
+    snap: snapshot(), bumped: false, warned: false,
   };
+  b.rx = b.x; b.ry = b.y;
   state.hint = null;
   sfx.pick();
 });
 
+// Free dragging: the block follows the finger smoothly and only slides where it fits.
+// A block at a fractional spot covers the cells of every whole-cell spot around it.
+function fitsAt(b, x, y, occ) {
+  const { W, H } = state.level, e = 1e-6;
+  const xs = Math.floor(x + e) === Math.ceil(x - e) ? [Math.round(x)] : [Math.floor(x), Math.ceil(x)];
+  const ys = Math.floor(y + e) === Math.ceil(y - e) ? [Math.round(y)] : [Math.floor(y), Math.ceil(y)];
+  for (const ix of xs) for (const iy of ys) if (!canPlace(b.shape, ix, iy, occ, b.id, W, H)) return false;
+  return true;
+}
+const toward = (v, t, s) => (Math.abs(t - v) <= s ? t : v + Math.sign(t - v) * s);
+function slideAxis(d, axis, step) {
+  const b = d.b;
+  let x = d.fx, y = d.fy;
+  const nx = axis === 'x' ? x + step : x, ny = axis === 'y' ? y + step : y;
+  if (fitsAt(b, nx, ny, d.occ)) { d.fx = nx; d.fy = ny; return true; }
+  // slide flush against whatever is in the way
+  const cur = axis === 'x' ? x : y;
+  const edge = step > 0 ? Math.ceil(cur - 1e-6) : Math.floor(cur + 1e-6);
+  if (Math.abs(edge - cur) > 1e-6) {
+    if (axis === 'x') d.fx = edge; else d.fy = edge;
+    return true;
+  }
+  // corner help: if the other axis is nearly lined up with a gap, ease it into the gap
+  const other = axis === 'x' ? y : x, near = Math.round(other);
+  if (Math.abs(near - other) > 1e-6 && Math.abs(near - other) < 0.45) {
+    const tx = axis === 'x' ? x + step : near, ty = axis === 'y' ? y + step : near;
+    if (fitsAt(b, tx, ty, d.occ)) {
+      if (axis === 'x') d.fy = toward(y, near, Math.abs(step) * 1.2); else d.fx = toward(x, near, Math.abs(step) * 1.2);
+      return true;
+    }
+  }
+  return false;
+}
+function checkGates(d) {
+  const b = d.b, { W, H } = state.level;
+  const ix = Math.round(d.fx), iy = Math.round(d.fy);
+  if (Math.abs(d.fx - ix) > 0.34 || Math.abs(d.fy - iy) > 0.34) return false;
+  if (!canPlace(b.shape, ix, iy, d.occ, b.id, W, H)) return false;
+  const g = exitAt(b.shape, ix, iy, b.color, d.occ, b.id, d.open, W, H);
+  if (g) {
+    b.x = ix; b.y = iy;
+    startExit(b, g);
+    endDrag(true);
+    return true;
+  }
+  const lockedGate = exitAt(b.shape, ix, iy, b.color, d.occ, b.id, d.locked, W, H);
+  if (lockedGate && !d.warned) {
+    d.warned = true; lockedGate.shake = 0.4; sfx.locked(); buzz(15);
+    toast('Parede trancada. Tire o bloco com a chave primeiro.');
+  }
+  return false;
+}
 canvas.addEventListener('pointermove', e => {
   const d = state.drag;
   if (!d || e.pointerId !== d.pid) return;
   const p = pointerPos(e);
-  const { W, H } = state.level;
-  const b = d.b;
-  const fx = (p.x - d.offX - geo.bx) / geo.cs, fy = (p.y - d.offY - geo.by) / geo.cs;
-  for (let guard = 0; guard < 40; guard++) {
-    const ddx = fx - b.x, ddy = fy - b.y;
-    const sx = Math.abs(ddx) >= 0.5 ? Math.sign(ddx) : 0;
-    const sy = Math.abs(ddy) >= 0.5 ? Math.sign(ddy) : 0;
-    if (!sx && !sy) break;
-    const order = Math.abs(ddx) >= Math.abs(ddy) ? [[sx, 0], [0, sy]] : [[0, sy], [sx, 0]];
+  const tx = (p.x - d.offX - geo.bx) / geo.cs, ty = (p.y - d.offY - geo.by) / geo.cs;
+  const STEP = 0.08;
+  let blocked = false;
+  for (let i = 0; i < 400; i++) {
+    const dx = tx - d.fx, dy = ty - d.fy;
+    if (Math.abs(dx) < 1e-3 && Math.abs(dy) < 1e-3) break;
+    const sx = Math.max(-STEP, Math.min(STEP, dx)), sy = Math.max(-STEP, Math.min(STEP, dy));
+    // move along the bigger direction first so the block tracks the finger
+    const first = Math.abs(dx) >= Math.abs(dy) ? ['x', sx, 'y', sy] : ['y', sy, 'x', sx];
     let moved = false;
-    for (const [dx, dy] of order) {
-      if (!dx && !dy) continue;
-      if (canPlace(b.shape, b.x + dx, b.y + dy, d.occ, b.id, W, H)) { b.x += dx; b.y += dy; moved = true; break; }
-    }
-    if (!moved) {
-      if (!d.bumped) { sfx.bump(); d.bumped = true; }
-      break;
-    }
-    d.bumped = false;
-    d.changed = true;
-    sfx.step();
-    const g = exitAt(b.shape, b.x, b.y, b.color, d.occ, b.id, d.open, W, H);
-    if (g) { startExit(b, g); endDrag(); break; }
-    const lockedGate = exitAt(b.shape, b.x, b.y, b.color, d.occ, b.id, d.locked, W, H);
-    if (lockedGate && !d.warned) {
-      d.warned = true; lockedGate.shake = 0.4; sfx.locked(); buzz(15);
-      toast('Parede trancada. Tire o bloco com a chave primeiro.');
-    }
+    if (Math.abs(first[1]) > 1e-4) moved = slideAxis(d, first[0], first[1]) || moved;
+    if (Math.abs(first[3]) > 1e-4) moved = slideAxis(d, first[2], first[3]) || moved;
+    if (checkGates(d)) return;
+    if (!moved) { blocked = true; break; }
   }
+  if (blocked && !d.bumped) { sfx.bump(); d.bumped = true; }
+  if (!blocked) d.bumped = false;
+  const cx = Math.round(d.fx), cy = Math.round(d.fy);
+  if (cx !== d.cellX || cy !== d.cellY) { d.cellX = cx; d.cellY = cy; sfx.step(); }
 });
 
-function endDrag() {
+function endDrag(exited) {
   const d = state.drag;
   if (!d) return;
   try { canvas.releasePointerCapture(d.pid); } catch (err) { /* ignore */ }
-  if (d.changed) { state.undo.push(d.snap); state.moves++; }
+  const b = d.b;
+  if (!exited) {
+    // drop into the nearest whole cell (always free: it is inside the area the block covers)
+    b.x = Math.round(d.fx); b.y = Math.round(d.fy);
+    b.rx = d.fx; b.ry = d.fy;
+  }
+  const s0 = d.snap[b.id];
+  if (exited || s0.x !== b.x || s0.y !== b.y) { state.undo.push(d.snap); state.moves++; }
   state.drag = null;
   updateHud();
 }
@@ -1377,7 +1428,8 @@ function update(dt) {
       continue;
     }
     if (b.gone) continue;
-    b.rx += (b.x - b.rx) * k; b.ry += (b.y - b.ry) * k;
+    if (state.drag && state.drag.b === b) { b.rx = state.drag.fx; b.ry = state.drag.fy; }
+    else { b.rx += (b.x - b.rx) * k; b.ry += (b.y - b.ry) * k; }
     if (b.shake > 0) b.shake = Math.max(0, b.shake - dt);
     const frozen = isFrozen(b);
     if (b.wasFrozen && !frozen) {
@@ -1813,6 +1865,15 @@ function start(data) {
 }
 window.claude?.hot?.snapshot?.(() => ({ n: state.n, best: state.best, coins: state.coins, sound: state.sound, screen: state.screen }));
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+
+// Android back button (called by the APK wrapper). Returns true when the game handled it.
+window.blocksolveBack = () => {
+  if (!$('introOverlay').hidden) { $('introBtn').click(); return true; }
+  if (!$('winOverlay').hidden) { $('winOverlay').hidden = true; showScreen('levels'); return true; }
+  if (state.screen === 'game') { if (state.drag) endDrag(); showScreen('levels'); return true; }
+  if (state.screen === 'levels' || state.screen === 'options') { showScreen('home'); return true; }
+  return false;
+};
 
 // Small hook used by automated tests.
 window.__blocksolve = { state, showScreen, playLevel, findHint, startExit, startLevel, buildOcc, exitAt, search, openGates, isFrozen, analyze, decodeLevel, LEVELS };
