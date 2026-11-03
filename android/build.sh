@@ -10,8 +10,8 @@ BT="$SDK/build-tools/34.0.0"
 JAR="$SDK/platforms/android-34/android.jar"
 APP="$ROOT/android/app"
 OUT="$ROOT/android/build"
-VERSION_CODE="${VERSION_CODE:-3}"
-VERSION_NAME="${VERSION_NAME:-1.2}"
+VERSION_CODE="${VERSION_CODE:-4}"
+VERSION_NAME="${VERSION_NAME:-2.0}"
 
 rm -rf "$OUT" && mkdir -p "$OUT/assets" "$OUT/classes" "$OUT/gen" "$ROOT/dist"
 
