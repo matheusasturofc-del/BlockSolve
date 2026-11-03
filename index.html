@@ -289,6 +289,9 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 .dot.mystery, .mech .mystery { background: #9aa3b5; }
 .dot.limit, .mech .limit { background: #ff8a3d; }
 .dot.coin, .mech .coin { background: #ffd34d; box-shadow: inset 0 0 0 2px #c98a08; }
+.dot.layer, .mech .layer { background: #f7c62f; box-shadow: inset 0 0 0 2px #8a5cf0; }
+.dot.glass, .mech .glass { background: #eef7ff; box-shadow: inset 0 0 0 2px #8fb7d6; }
+.dot.chameleon, .mech .chameleon { background: linear-gradient(90deg, #ee4d4d 50%, #2f86e8 50%); }
 .lvl .mech { flex-wrap: wrap; justify-content: flex-end; max-width: 80%; }
 .lvl .mech i { width: 6px; height: 6px; }
 .world {
@@ -511,7 +514,7 @@ body[data-bg="sketch"] {
     <div class="coins small"><span class="coin"></span><span id="levelsCoins">60</span></div>
   </header>
   <div class="levels" id="levelsGrid"></div>
-  <div class="legend"><span><i class="dot ice"></i>Gelo</span><span><i class="dot key"></i>Chave</span><span><i class="dot stone"></i>Pedra</span><span><i class="dot rail"></i>Trilho</span><span><i class="dot bomb"></i>Bomba</span><span><i class="dot gateice"></i>Parede congelada</span><span><i class="dot mystery"></i>Mistério</span><span><i class="dot limit"></i>Contador</span><span><i class="dot coin"></i>Moedas</span></div>
+  <div class="legend"><span><i class="dot ice"></i>Gelo</span><span><i class="dot key"></i>Chave</span><span><i class="dot stone"></i>Pedra</span><span><i class="dot rail"></i>Trilho</span><span><i class="dot bomb"></i>Bomba</span><span><i class="dot gateice"></i>Parede congelada</span><span><i class="dot mystery"></i>Mistério</span><span><i class="dot limit"></i>Contador</span><span><i class="dot coin"></i>Moedas</span><span><i class="dot layer"></i>Casca</span><span><i class="dot glass"></i>Vidro</span><span><i class="dot chameleon"></i>Camaleão</span></div>
   <button class="cta" id="endlessBtn" type="button">Modo infinito</button>
 </section>
 
@@ -794,7 +797,7 @@ function generateLevel(spec, seed) {
       good.sort((a, b) => b.d - a.d);
       const pick = good[Math.floor(rnd() * Math.min(3, good.length))];
       const id = blocks.length;
-      blocks.push({ id, shape, color, x: pick.x, y: pick.y, ice: 0, key: lockId, axis, bomb: 0, hide: 0, via: pick.gate });
+      blocks.push({ id, shape, color, x: pick.x, y: pick.y, ice: 0, key: lockId, axis, bomb: 0, hide: 0, via: pick.gate, usable });
       for (const [cx, cy] of shape.cells) occ[(pick.y + cy) * W + pick.x + cx] = id;
       if (lockId) { closed.add(lockId); keyIdx++; }
       if (axis) rails++;
@@ -820,16 +823,20 @@ function generateLevel(spec, seed) {
     }
     if (!wallsOk) continue;
     for (const g of gates) { delete g.iceAt; delete g.closedFrom; g.ice = g.ice || 0; g.limit = 0; }
+    if (!assignLayers(blocks, gates, spec, rnd, W, H, stones)) continue;
     // Counting walls: only as many blocks may pass as used them in the guaranteed order.
     if (spec.limits) {
-      const cands = shuffle(gates.filter(g => !g.lock && !g.ice && gates.filter(h => h.color === g.color).length > 1
+      const shells = new Set(blocks.map(b => b.peelGate).filter(Boolean));
+      const cands = shuffle(gates.filter(g => !g.lock && !g.ice && !shells.has(g) && gates.filter(h => h.color === g.color).length > 1
         && blocks.some(b => b.via === g)), rnd);
       if (cands.length < spec.limits) continue;
       for (const g of cands.slice(0, spec.limits)) g.limit = blocks.filter(b => b.via === g).length;
     }
+    if (!assignChameleons(blocks, gates, spec, rnd, palette)) continue;
     assignIce(blocks, spec, rnd, startOpen, W, H, stones);
     if (!assignBombs(blocks, spec, rnd)) continue;
     assignMystery(blocks, spec, rnd);
+    assignGlass(blocks, spec, rnd);
     const coins = [];
     const occAll = occupancy(blocks, W, H, stones);
     for (let t = 0; coins.length < (spec.coins || 0) && t < 200; t++) {
@@ -837,10 +844,71 @@ function generateLevel(spec, seed) {
       if (occAll[y * W + x] !== -1 || coins.some(c => c[0] === x && c[1] === y)) continue;
       coins.push([x, y]);
     }
-    for (const b of blocks) delete b.via;
+    for (const b of blocks) { delete b.via; delete b.usable; delete b.peelGate; }
     return { W, H, gates, blocks, stones, coins };
   }
   return null;
+}
+// Move number on which each block leaves in the guaranteed order (layered blocks spend one
+// extra move breaking their shell right before they leave).
+function exitMoves(blocks) {
+  const at = new Map();
+  let m = 0;
+  for (const b of blocks.slice().sort((a, c) => c.id - a.id)) { m += b.layer ? 2 : 1; at.set(b, m); }
+  return at;
+}
+// Layered block: an outer shell of another colour. Right before its turn it touches a wall of
+// the shell colour (the shell breaks, the block stays there) and then leaves from that spot.
+function assignLayers(blocks, gates, spec, rnd, W, H, stones) {
+  if (!spec.layers) return true;
+  const colors = [...new Set(gates.map(g => g.color))];
+  let made = 0;
+  for (const b of shuffle(blocks.filter(x => !x.key && !x.axis), rnd)) {
+    if (made >= spec.layers) break;
+    const occ = occupancy(blocks.filter(x => x.id < b.id), W, H, stones);
+    for (const A of shuffle(colors.filter(c => c !== b.color), rnd)) {
+      const shellGates = gates.filter(g => g.color === A && !g.lock && !g.ice && !g.limit);
+      if (!shellGates.length || exitAt(b.shape, b.x, b.y, A, occ, b.id, gates.filter(g => g.color === A), W, H)) continue;
+      const spots = shuffle(search(b.shape, b.x, b.y, A, occ, b.id, shellGates, W, H, true).all
+        .filter(p => p.d > 0 && exitAt(b.shape, p.x, p.y, A, occ, b.id, shellGates, W, H)), rnd);
+      for (const p of spots) {
+        const r = search(b.shape, p.x, p.y, b.color, occ, b.id, b.usable, W, H, false, 0);
+        if (!r.found || r.dist < 1) continue;
+        b.layer = A; b.via = r.gate; b.peelGate = exitAt(b.shape, p.x, p.y, A, occ, b.id, shellGates, W, H);
+        made++;
+        break;
+      }
+      if (b.layer) break;
+    }
+  }
+  return made >= spec.layers;
+}
+// Chameleon wall: swaps between two colours on every move. Its own colour shows on the moves
+// when the blocks that use it in the guaranteed order leave, so it never gets in their way.
+function assignChameleons(blocks, gates, spec, rnd, palette) {
+  if (!spec.chameleons) return true;
+  const at = exitMoves(blocks);
+  const busy = new Set(blocks.map(b => b.peelGate).filter(Boolean));
+  let made = 0;
+  for (const g of shuffle(gates.filter(g => !g.lock && !g.ice && !g.limit && !busy.has(g)), rnd)) {
+    if (made >= spec.chameleons) break;
+    const users = blocks.filter(b => b.via === g);
+    if (!users.length) continue;
+    const par = new Set(users.map(b => (at.get(b) - 1) % 2));
+    if (par.size !== 1) continue;
+    const p = [...par][0];
+    const other = shuffle(palette.filter(c => c !== g.color), rnd)[0];
+    g.cycle = p === 0 ? [g.color, other] : [other, g.color];
+    g.color = g.cycle[0];
+    made++;
+  }
+  return made >= spec.chameleons;
+}
+// Glass block: can be dragged only a set number of times; the guaranteed order needs one.
+function assignGlass(blocks, spec, rnd) {
+  if (!spec.glass) return;
+  for (const b of shuffle(blocks.filter(x => !x.layer && !x.bomb && !x.hide), rnd).slice(0, spec.glass))
+    b.glass = rnd() < 0.7 ? 1 : 2;
 }
 function assignIce(blocks, spec, rnd, startOpen, W, H, stones) {
   const n = blocks.length;
@@ -860,15 +928,15 @@ function assignIce(blocks, spec, rnd, startOpen, W, H, stones) {
 function assignMystery(blocks, spec, rnd) {
   if (!spec.mystery) return;
   const n = blocks.length;
-  const cands = shuffle(blocks.filter(b => !b.ice && !b.key && !b.bomb && n - 1 - b.id >= 1), rnd);
+  const cands = shuffle(blocks.filter(b => !b.ice && !b.key && !b.bomb && !b.layer && n - 1 - b.id >= 1), rnd);
   for (const b of cands.slice(0, spec.mystery)) b.hide = 1 + Math.floor(rnd() * Math.min(3, n - 1 - b.id));
 }
 // A bomb on the block that leaves k-th in the guaranteed order needs at least k moves.
 function assignBombs(blocks, spec, rnd) {
   if (!spec.bombs) return true;
-  const n = blocks.length;
-  const turn = b => n - b.id;
-  const cands = shuffle(blocks.filter(b => !b.ice && !b.key && turn(b) >= 2 && turn(b) <= Math.max(3, Math.ceil(n * 0.6))), rnd);
+  const n = blocks.length, at = exitMoves(blocks);
+  const turn = b => at.get(b);
+  const cands = shuffle(blocks.filter(b => !b.ice && !b.key && !b.layer && n - b.id >= 2 && n - b.id <= Math.max(3, Math.ceil(n * 0.6))), rnd);
   if (cands.length < spec.bombs) return false;
   for (const b of cands.slice(0, spec.bombs)) b.bomb = turn(b) + (spec.bombSlack ?? 2);
   return true;
@@ -877,41 +945,73 @@ function assignBombs(blocks, spec, rnd) {
 // Difficulty stats. `rounds` counts waves of blocks that can leave together; the move check
 // clears one block per move, most urgent bomb first, and fails if a bomb would go off.
 function analyze(level) {
-  const { W, H, gates, stones } = level;
-  const exitable = (blocks, gone, opened, used) => {
-    const open = gates.filter(g => (!g.lock || opened.has(g.lock)) && gone >= (g.ice || 0) && (!used || !g.limit || (used.get(g) || 0) < g.limit));
+  const { W, H, stones } = level;
+  const gates = level.gates;
+  const colorNow = b => (b.layer ? b.layer : b.color);
+  const exitable = (blocks, gone, opened, used, gl) => {
+    const open = gl.filter(g => (!g.lock || opened.has(g.lock)) && gone >= (g.ice || 0) && (!used || !g.limit || (used.get(g.src || g) || 0) < g.limit));
     const free = open.filter(g => !g.limit);
     const occ = occupancy(blocks, W, H, stones);
     const out = [];
     for (const b of blocks) {
       if (gone < (b.ice || 0)) continue;
-      let r = search(b.shape, b.x, b.y, b.color, occ, b.id, free, W, H, false, b.axis);
-      if (!r.found) r = search(b.shape, b.x, b.y, b.color, occ, b.id, open, W, H, false, b.axis);
-      if (r.found) out.push({ b, d: r.dist, gate: r.gate });
+      let r = search(b.shape, b.x, b.y, colorNow(b), occ, b.id, free, W, H, false, b.axis);
+      if (!r.found) r = search(b.shape, b.x, b.y, colorNow(b), occ, b.id, open, W, H, false, b.axis);
+      if (r.found) out.push({ b, d: r.dist, gate: r.gate.src || r.gate, x: r.x, y: r.y });
     }
     return out;
   };
+  const peel = (blocks, o) => blocks.map(x => (x === o.b ? { ...x, x: o.x, y: o.y, layer: 0 } : x));
+  // waves: a chameleon wall counts as both of its colours
+  const both = gates.flatMap(g => (g.cycle ? g.cycle.map(c => ({ ...g, color: c, src: g })) : [g]));
   let blocks = level.blocks.slice(), opened = new Set(), gone = 0, rounds = 0, free0 = -1, sumDist = 0;
   while (blocks.length) {
-    const out = exitable(blocks, gone, opened, null);
-    if (!out.length) return { ok: false };
+    const out = exitable(blocks, gone, opened, null, both);
+    if (!out.length) break;   // waves are only a difficulty measure
     if (free0 < 0) free0 = out.length;
     rounds++;
-    for (const { b, d } of out) { sumDist += d; gone++; if (b.key) opened.add(b.key); }
-    blocks = blocks.filter(b => !out.some(o => o.b === b));
+    for (const o of out) {
+      sumDist += o.d;
+      if (o.b.layer) { blocks = peel(blocks, o); continue; }
+      gone++; if (o.b.key) opened.add(o.b.key);
+      blocks = blocks.filter(x => x !== o.b);
+    }
   }
+  // Replay the guaranteed order (highest id leaves first) with every rule switched on.
   blocks = level.blocks.slice(); opened = new Set(); gone = 0;
   const used = new Map();
   let moves = 0;
-  while (blocks.length) {
-    const out = exitable(blocks, gone, opened, used);
-    if (!out.length) return { ok: false };
-    out.sort((p, q) => (p.b.bomb || 1e9) - (q.b.bomb || 1e9) || (p.gate.limit ? 1 : 0) - (q.gate.limit ? 1 : 0) || p.d - q.d);
-    const { b, gate } = out[0];
-    gone++; moves++; if (b.key) opened.add(b.key);
-    used.set(gate, (used.get(gate) || 0) + 1);
-    blocks = blocks.filter(x => x !== b);
-    if (blocks.some(x => x.bomb && x.bomb - moves <= 0)) return { ok: false, bomb: true };
+  const gatesNow = () => gates.map(g => (g.cycle ? { ...g, color: g.cycle[moves % 2], src: g } : g))
+    .filter(g => (!g.lock || opened.has(g.lock)) && gone >= (g.ice || 0) && (!g.limit || (used.get(g) || 0) < g.limit));
+  const leave = (b, occ) => {
+    const open = gatesNow();
+    const r = search(b.shape, b.x, b.y, b.color, occ, b.id, open.filter(g => !g.limit), W, H, false, b.axis);
+    return r.found ? r : search(b.shape, b.x, b.y, b.color, occ, b.id, open, W, H, false, b.axis);
+  };
+  const boom = () => blocks.some(x => x.bomb && x.bomb - moves <= 0);
+  for (const first of level.blocks.slice().sort((a, c) => c.id - a.id)) {
+    let b = first;
+    if (gone < (b.ice || 0)) return { ok: false };
+    let occ = occupancy(blocks, W, H, stones);
+    if (b.layer) {
+      const shell = gatesNow().filter(g => g.color === b.layer);
+      const spots = search(b.shape, b.x, b.y, b.layer, occ, b.id, shell, W, H, true, b.axis).all
+        .filter(q => exitAt(b.shape, q.x, q.y, b.layer, occ, b.id, shell, W, H));
+      moves++;
+      const q = spots.find(q => leave({ ...b, x: q.x, y: q.y, layer: 0 }, occ).found);
+      if (!q) return { ok: false };
+      b = { ...b, x: q.x, y: q.y, layer: 0 };
+      blocks = blocks.map(x => (x.id === b.id ? b : x));
+      if (boom()) return { ok: false, bomb: true };
+      occ = occupancy(blocks, W, H, stones);
+    }
+    const r = leave(b, occ);
+    if (!r.found) return { ok: false };
+    moves++; gone++; if (b.key) opened.add(b.key);
+    const src = r.gate.src || r.gate;
+    used.set(src, (used.get(src) || 0) + 1);
+    blocks = blocks.filter(x => x.id !== b.id);
+    if (boom()) return { ok: false, bomb: true };
   }
   return { ok: true, rounds, free0, sumDist, blocks: level.blocks.length };
 }
@@ -923,15 +1023,21 @@ function endlessSpec(n) {
     ice: 1 + Math.floor(r() * 3), iceMax: 4, keys: Math.floor(r() * 3), keyFrozen: r() < 0.3, minBlocks: 8,
     stones: Math.floor(r() * 4), rails: Math.floor(r() * 4), bombs: r() < 0.5 ? 1 : 0, bombSlack: 2,
     gateIce: r() < 0.5 ? 1 : 0, mystery: Math.floor(r() * 3), limits: r() < 0.4 ? 1 : 0, coins: 2 + Math.floor(r() * 3),
+    layers: Math.floor(r() * 3), glass: Math.floor(r() * 3), chameleons: r() < 0.4 ? 1 : 0,
   };
 }
 
+function trimZeros(arr, min) {
+  let n = arr.length;
+  while (n > min && !arr[n - 1]) n--;
+  return arr.slice(0, n);
+}
 function encodeLevel(L) {
   const d = {
     W: L.W, H: L.H,
-    g: L.gates.map(g => (g.ice || g.limit ? [g.side, g.start, g.len, g.color, g.lock || 0, g.ice || 0, g.limit || 0] : [g.side, g.start, g.len, g.color, g.lock || 0])),
-    b: L.blocks.map(b => (b.hide ? [b.color, b.x, b.y, b.shape.key, b.ice || 0, b.key || 0, b.axis || 0, b.bomb || 0, b.hide]
-      : [b.color, b.x, b.y, b.shape.key, b.ice || 0, b.key || 0, b.axis || 0, b.bomb || 0])),
+    g: L.gates.map(g => trimZeros([g.side, g.start, g.len, g.color, g.lock || 0, g.ice || 0, g.limit || 0, g.cycle || 0], 5)),
+    b: L.blocks.map(b => trimZeros([b.color, b.x, b.y, b.shape.key, b.ice || 0, b.key || 0, b.axis || 0, b.bomb || 0,
+      b.hide || 0, b.layer || 0, b.glass || 0], 8)),
   };
   if (L.stones && L.stones.length) d.s = L.stones;
   if (L.coins && L.coins.length) d.c = L.coins;
@@ -940,9 +1046,9 @@ function encodeLevel(L) {
 function decodeLevel(d) {
   return {
     W: d.W, H: d.H, stones: d.s || [], coins: d.c || [],
-    gates: d.g.map(([side, start, len, color, lock, ice, limit]) => ({ side, start, len, color, lock, ice: ice || 0, limit: limit || 0 })),
-    blocks: d.b.map(([color, x, y, cells, ice, key, axis, bomb, hide], id) => ({
-      id, color, x, y, ice, key, axis: axis || 0, bomb: bomb || 0, hide: hide || 0,
+    gates: d.g.map(([side, start, len, color, lock, ice, limit, cycle]) => ({ side, start, len, color, lock, ice: ice || 0, limit: limit || 0, cycle: cycle || 0 })),
+    blocks: d.b.map(([color, x, y, cells, ice, key, axis, bomb, hide, layer, glass], id) => ({
+      id, color, x, y, ice, key, axis: axis || 0, bomb: bomb || 0, hide: hide || 0, layer: layer || 0, glass: glass || 0,
       shape: makeShape(cells.split(';').map(p => p.split(',').map(Number))),
     })),
   };
@@ -959,6 +1065,9 @@ function mechanicsOf(d) {
   if (d.b.some(b => b[8])) m.push('mystery');
   if (d.g.some(g => g[6])) m.push('limit');
   if (d.c && d.c.length) m.push('coin');
+  if (d.b.some(b => b[9])) m.push('layer');
+  if (d.b.some(b => b[10])) m.push('glass');
+  if (d.g.some(g => g[7])) m.push('chameleon');
   return m;
 }
 /*CORE-END*/
@@ -1064,7 +1173,57 @@ const LEVELS = /*LEVELS-START*/[
   {"W":7,"H":9,"g":[["right",1,2,"green",0],["right",5,3,"yellow",0,6,0],["bottom",2,4,"orange",2],["left",2,4,"pink",0,10,0],["top",5,2,"purple",1],["top",0,3,"red",0],["bottom",0,2,"green",0],["top",3,2,"red",0]],"b":[["yellow",0,2,"0,0;0,1;0,2;1,2",0,0,0,0],["orange",2,0,"0,0;1,0",0,0,"v",0,2],["pink",6,2,"0,0",0,0,0,0],["purple",1,8,"0,0",0,0,0,0],["red",6,6,"0,0",0,0,0,0],["green",5,8,"0,0;1,0",0,0,0,0],["orange",0,0,"0,0",0,1,0,0],["green",0,6,"0,0",0,0,0,0],["orange",1,0,"0,0",0,0,0,0],["orange",5,2,"0,0;0,1;1,1;0,2",0,0,0,0],["orange",3,5,"1,0;2,0;0,1;1,1;2,1",0,0,0,0],["orange",2,7,"2,0;0,1;1,1;2,1",0,0,0,0],["green",1,7,"0,0;1,0",2,2,0,0],["green",1,6,"0,0",0,0,0,0],["green",2,4,"0,0;1,0;2,0",0,0,0,0],["green",1,1,"0,0;1,0;2,0;3,0",0,0,0,0],["green",5,0,"0,0;1,0",0,0,0,0]],"s":[[4,2],[0,7],[4,0]],"c":[[3,5],[1,2]]},
   {"W":7,"H":9,"g":[["bottom",1,4,"pink",0,8,0],["top",0,4,"red",0],["left",1,2,"green",0,0,8],["left",5,2,"yellow",0,13,0],["right",3,4,"blue",1],["right",0,2,"purple",2],["bottom",5,2,"red",0,0,3],["top",4,2,"green",0]],"b":[["blue",0,0,"0,0;0,1;1,1;2,1",0,0,0,0,2],["purple",2,7,"1,0;2,0;0,1;1,1",0,0,0,0],["yellow",2,0,"0,0;1,0;2,0;2,1",0,0,0,0],["red",0,7,"0,0;0,1",0,1,0,0],["purple",2,7,"0,0",0,0,0,0],["pink",5,0,"0,0",0,0,0,0],["red",0,3,"0,0;0,1;0,2;1,2",0,0,0,0],["green",6,8,"0,0",0,0,0,0],["purple",1,3,"1,0;0,1;1,1",0,0,0,0],["red",1,3,"0,0",0,0,0,0],["green",2,6,"0,0;1,0;2,0;3,0",0,2,0,0],["green",3,5,"0,0;1,0;2,0;3,0",0,0,0,7],["green",5,4,"0,0",0,0,0,0],["green",6,3,"0,0",0,0,0,0],["green",3,2,"0,0;1,0;2,0;3,0",0,0,0,0],["green",2,2,"0,0",0,0,0,0],["green",1,2,"0,0",0,0,0,0]],"c":[[4,8],[6,7],[1,6],[0,6]]},
   {"W":7,"H":9,"g":[["right",3,4,"green",0,0,5],["left",0,4,"pink",2],["top",0,3,"yellow",0,10,0],["bottom",3,3,"blue",0],["left",5,4,"orange",1],["top",5,2,"teal",0,7,0],["bottom",1,2,"green",0],["right",0,2,"blue",0,0,4]],"b":[["pink",2,8,"0,0;1,0;2,0;3,0",0,0,0,0,1],["yellow",0,7,"0,0;1,0;2,0;0,1",0,0,0,0],["blue",1,6,"0,0;1,0",0,0,0,0],["orange",2,5,"0,0;1,0",0,0,"h",0],["teal",0,3,"0,0;1,0",0,1,0,0],["pink",4,2,"0,0;1,0;2,0;1,1;2,1",0,0,0,0],["blue",0,0,"0,0;0,1;1,1",0,0,"h",0],["green",0,4,"0,0;1,0",0,0,"h",8],["blue",1,0,"0,0;1,0;1,1;2,1",0,2,0,0],["blue",3,0,"0,0;1,0;2,0;2,1",2,0,0,0],["green",2,4,"0,0;1,0;2,0;3,0",3,0,"h",0],["green",3,6,"0,0",0,0,"h",4],["green",3,7,"0,0",0,0,0,0,1],["green",6,6,"0,0;0,1;0,2",0,0,0,0]],"s":[[5,5],[5,7],[0,6]],"c":[[1,8],[1,5]]},
-  {"W":7,"H":9,"g":[["bottom",2,4,"green",0],["right",6,3,"purple",0],["right",0,4,"yellow",1],["left",3,4,"orange",0],["top",0,3,"blue",2],["top",3,4,"red",0,0,3],["left",0,2,"red",0],["left",7,2,"green",0,0,5]],"b":[["blue",3,7,"0,0;1,0;2,0;0,1;2,1",0,0,0,0,2],["red",4,6,"0,0",0,0,"v",0],["yellow",1,1,"0,0;1,0;0,1;0,2",0,0,"h",0],["orange",3,0,"1,0;1,1;0,2;1,2;2,2",0,0,0,0],["blue",0,0,"0,0;1,0;2,0;0,1",0,1,0,0],["red",0,3,"0,0;0,1;0,2",0,0,0,0],["green",5,5,"1,0;0,1;1,1",0,0,0,0],["green",4,3,"0,0;1,0;0,1",0,0,0,0],["green",3,3,"0,0;0,1;0,2",0,2,0,0],["green",1,4,"0,0;0,1;1,1",0,0,0,0,1],["orange",2,6,"0,0;1,0",0,0,0,0],["green",1,6,"0,0;0,1;1,1",0,0,0,0],["red",5,1,"0,0;1,0",0,0,0,0,1],["green",0,6,"0,0;0,1",0,0,0,0]],"c":[[5,4],[6,8],[6,0]]}
+  {"W":7,"H":9,"g":[["bottom",2,4,"green",0],["right",6,3,"purple",0],["right",0,4,"yellow",1],["left",3,4,"orange",0],["top",0,3,"blue",2],["top",3,4,"red",0,0,3],["left",0,2,"red",0],["left",7,2,"green",0,0,5]],"b":[["blue",3,7,"0,0;1,0;2,0;0,1;2,1",0,0,0,0,2],["red",4,6,"0,0",0,0,"v",0],["yellow",1,1,"0,0;1,0;0,1;0,2",0,0,"h",0],["orange",3,0,"1,0;1,1;0,2;1,2;2,2",0,0,0,0],["blue",0,0,"0,0;1,0;2,0;0,1",0,1,0,0],["red",0,3,"0,0;0,1;0,2",0,0,0,0],["green",5,5,"1,0;0,1;1,1",0,0,0,0],["green",4,3,"0,0;1,0;0,1",0,0,0,0],["green",3,3,"0,0;0,1;0,2",0,2,0,0],["green",1,4,"0,0;0,1;1,1",0,0,0,0,1],["orange",2,6,"0,0;1,0",0,0,0,0],["green",1,6,"0,0;0,1;1,1",0,0,0,0],["red",5,1,"0,0;1,0",0,0,0,0,1],["green",0,6,"0,0;0,1",0,0,0,0]],"c":[[5,4],[6,8],[6,0]]},
+  {"W":7,"H":9,"g":[["top",0,2,"yellow",0],["bottom",0,2,"green",0],["right",6,3,"purple",0],["top",3,2,"blue",0],["right",0,4,"red",0],["bottom",3,2,"pink",0],["left",7,2,"blue",0],["left",3,2,"pink",0]],"b":[["pink",5,2,"1,0;0,1;1,1",0,0,0,0],["yellow",5,5,"0,0;1,0;1,1",0,0,0,0],["green",4,1,"0,0;1,0;0,1;1,1;0,2",0,0,0,0],["purple",1,0,"0,0;1,0;1,1;2,1",0,0,0,0,0,"pink"],["pink",0,2,"0,0;1,0;0,1;0,2;1,2",0,0,0,0],["green",3,3,"0,0;0,1;1,1;0,2;1,2",0,0,0,0],["purple",1,5,"0,0;1,0;1,1",0,0,0,0],["pink",2,6,"1,0;0,1;1,1;1,2",0,0,0,0],["purple",4,6,"0,0;0,1;1,1;2,1",0,0,0,0],["purple",4,8,"0,0",1,0,0,0],["yellow",0,1,"0,0",0,0,0,0]],"c":[[2,3],[0,8],[5,6],[6,1]]},
+  {"W":7,"H":9,"g":[["left",1,4,"pink",0],["bottom",2,3,"teal",0],["top",3,4,"red",0],["right",4,2,"orange",0],["top",0,3,"blue",0],["left",5,2,"green",0],["right",1,2,"blue",0]],"b":[["orange",3,4,"0,0;1,0;0,1",0,0,"h",0],["blue",3,7,"0,0;1,0;0,1",0,0,0,0],["green",4,5,"0,0;1,0;1,1",0,0,0,0],["pink",5,4,"0,0;1,0;1,1;1,2",0,0,0,0],["red",1,5,"1,0;0,1;1,1;2,1",0,0,0,0],["blue",5,0,"1,0;0,1;1,1;0,2;1,2",0,0,0,0],["pink",2,0,"1,0;1,1;0,2;1,2",0,0,0,0,0,"red"],["teal",2,0,"0,0;0,1",0,0,0,0],["blue",0,1,"1,0;1,1;0,2;1,2",3,0,0,0],["green",6,3,"0,0",0,0,0,0],["pink",5,0,"0,0",0,0,0,0],["teal",5,3,"0,0",0,0,0,0],["teal",0,5,"0,0;0,1",0,0,0,0],["red",0,4,"0,0",0,0,0,0]],"c":[[0,1],[0,0],[5,8]]},
+  {"W":7,"H":9,"g":[["top",1,3,"red",0],["right",0,2,"teal",0],["left",2,2,"yellow",0],["right",5,3,"blue",0],["bottom",0,2,"pink",0],["top",5,2,"orange",0],["bottom",4,2,"orange",0]],"b":[["red",5,6,"1,0;0,1;1,1;0,2",0,0,0,0],["teal",2,7,"1,0;2,0;0,1;1,1;2,1",0,0,0,0],["yellow",6,3,"0,0;0,1",0,0,0,0],["blue",1,0,"0,0;1,0;2,0",0,0,0,0],["pink",0,1,"0,0;0,1;0,2;1,2",0,0,"v",0],["orange",0,6,"0,0;1,0;0,1;1,1;0,2;1,2",0,0,0,0],["teal",1,5,"0,0;1,0;2,0;2,1",0,0,0,0,1],["blue",1,2,"0,0",0,0,0,0,0,"teal"],["orange",4,3,"0,0;1,0;0,1;0,2",0,0,0,0],["teal",3,1,"1,0;2,0;0,1;1,1",1,0,0,0],["teal",4,0,"0,0;1,0",0,0,0,0]],"c":[[0,4],[5,6]]},
+  {"W":7,"H":9,"g":[["left",6,3,"red",0],["top",0,3,"green",1],["bottom",4,2,"purple",0],["right",6,3,"teal",0],["right",1,2,"pink",0],["left",1,2,"orange",0],["bottom",0,4,"orange",0]],"b":[["pink",1,7,"0,0;1,0;1,1",0,0,0,0,0,"purple"],["green",4,7,"0,0;1,0;0,1",0,0,0,0],["teal",1,0,"0,0;1,0",0,0,0,0],["pink",0,4,"1,0;2,0;0,1;1,1;2,1",0,0,0,0],["orange",3,5,"0,0;1,0;2,0;1,1",0,0,0,0,0,"pink"],["red",1,6,"0,0;1,0;2,0",0,1,0,0],["pink",0,1,"0,0;2,0;0,1;1,1;2,1",0,0,0,0],["purple",3,1,"0,0",0,0,0,0],["teal",3,2,"0,0;0,1;0,2",0,0,0,0],["pink",4,0,"2,0;0,1;1,1;2,1",0,0,0,0],["teal",5,2,"0,0",0,0,0,0],["purple",5,3,"0,0",0,0,0,0],["orange",0,6,"0,0;0,1",1,0,0,0],["teal",6,4,"0,0;0,1;0,2",0,0,0,0]],"c":[[4,4],[0,4],[6,7],[6,2]]},
+  {"W":7,"H":9,"g":[["bottom",4,3,"blue",0],["right",0,3,"red",0],["left",5,4,"green",0],["top",1,2,"pink",0],["left",1,3,"purple",0],["bottom",1,3,"orange",0],["right",6,3,"blue",0],["right",3,3,"orange",0]],"b":[["pink",1,2,"0,0;0,1;1,1",0,0,"v",0],["orange",0,0,"0,0;2,0;0,1;1,1;2,1",0,0,0,0,0,"red"],["blue",4,0,"0,0;0,1;1,1;2,1",0,0,0,0],["green",2,2,"0,0;1,0;1,1;2,1",0,0,0,0],["orange",0,5,"1,0;2,0;0,1;1,1",0,0,0,0],["blue",3,4,"0,0;1,0;2,0;0,1;1,1",0,0,0,0],["orange",3,5,"2,0;0,1;1,1;2,1",0,0,0,0],["blue",2,7,"0,0;1,0;2,0;0,1;1,1",0,0,0,5],["orange",4,8,"0,0",0,0,0,4],["blue",5,5,"1,0;1,1;0,2;1,2",0,0,0,0]],"c":[[0,3],[5,8]]},
+  {"W":7,"H":9,"g":[["bottom",4,3,"pink",0],["right",2,2,"blue",0],["top",0,3,"red",0,8],["left",3,3,"green",0],["left",0,2,"teal",0],["right",0,2,"orange",0],["top",4,2,"orange",0]],"b":[["orange",0,5,"0,0;0,1;0,2;0,3",0,0,0,0],["pink",4,1,"0,0;1,0;0,1;1,1;2,1",0,0,0,0],["blue",2,8,"0,0",0,0,0,0],["red",1,6,"2,0;0,1;1,1;2,1",0,0,0,0],["green",5,7,"0,0;0,1;1,1",0,0,0,0,0,"teal"],["teal",4,4,"0,0;1,0;0,1;1,1;2,1",0,0,0,0],["green",1,0,"0,0;1,0;0,1;1,1",0,0,0,0],["blue",1,5,"0,0;1,0",0,0,0,0],["green",3,3,"0,0;1,0;2,0;3,0",0,0,0,0],["green",1,3,"0,0;1,0;0,1;1,1",0,0,0,0],["orange",0,0,"0,0",0,0,0,4],["orange",0,4,"0,0",0,0,0,0]],"s":[[4,6]],"c":[[5,0],[3,5],[3,8],[5,6]]},
+  {"W":7,"H":9,"g":[["bottom",2,2,"green",0],["left",2,4,"yellow",0],["right",4,2,"teal",0],["top",1,2,"purple",0],["right",7,2,"blue",0],["right",0,3,"orange",0],["left",6,3,"green",0]],"b":[["yellow",4,6,"1,0;0,1;1,1;1,2",0,0,0,0],["teal",0,0,"0,0;1,0;2,0",0,0,0,0,0,"orange"],["orange",1,1,"0,0;1,0;2,0;0,1;1,1",0,0,"h",0],["green",4,0,"0,0;2,0;0,1;1,1;2,1",0,0,0,0],["yellow",4,4,"0,0;1,0;0,1;0,2",0,0,0,0,0,"green"],["green",0,2,"0,0;0,1;1,1;2,1",0,0,0,0],["yellow",3,7,"0,0;0,1;1,1",0,0,0,0],["green",0,4,"0,0;1,0;0,1;1,1;1,2",0,0,0,0],["orange",0,8,"0,0",0,0,0,0],["orange",0,6,"0,0",0,0,0,0],["green",6,7,"0,0",0,0,0,0],["teal",2,6,"0,0;0,1",0,0,0,0]],"c":[[5,5],[2,8],[3,2],[3,6]]},
+  {"W":7,"H":9,"g":[["bottom",3,4,"pink",0],["left",1,4,"green",0],["right",6,2,"teal",0],["bottom",0,2,"purple",0],["right",3,2,"yellow",0],["top",0,2,"orange",0],["top",5,2,"teal",0]],"b":[["yellow",0,7,"0,0;1,0;2,0;0,1;1,1;2,1",0,0,0,0,0,"green"],["orange",5,5,"0,0;0,1;0,2;1,2",0,0,0,0,0,"teal"],["pink",0,0,"1,0;0,1;1,1;0,2",0,0,0,0],["green",4,3,"0,0;1,0;2,0;1,1",0,0,"h",0],["teal",0,4,"1,0;0,1;1,1;0,2;1,2",0,0,0,0],["pink",6,0,"0,0;0,1;0,2",0,0,0,0],["pink",3,0,"0,0;1,0",0,0,0,0],["pink",1,2,"0,0;0,1;1,1;1,2",0,0,0,0],["pink",2,0,"0,0",0,0,0,0],["pink",3,4,"0,0;1,0",0,0,0,0],["yellow",6,5,"0,0",0,0,0,0],["pink",4,5,"0,0",0,0,0,0],["pink",2,5,"0,0;0,1;1,1",0,0,0,0]],"s":[[6,6]],"c":[[4,1],[6,8],[3,1],[5,2]]},
+  {"W":7,"H":9,"g":[["right",3,4,"green",0],["top",1,4,"pink",1],["right",1,2,"blue",0],["bottom",3,4,"teal",0],["left",1,4,"red",0],["bottom",0,2,"purple",0],["top",5,2,"teal",0],["right",7,2,"blue",0]],"b":[["green",0,6,"0,0;1,0;0,1;0,2",0,0,0,0],["pink",3,7,"2,0;0,1;1,1;2,1",0,0,0,0],["blue",2,7,"0,0;1,0;2,0;0,1",0,0,0,0],["teal",0,3,"0,0;0,1",0,0,0,0],["red",4,4,"2,0;0,1;1,1;2,1",0,0,0,0],["blue",1,4,"1,0;0,1;1,1",0,1,0,0],["teal",3,4,"0,0;1,0;0,1",0,0,0,0,0,"red"],["red",5,0,"0,0;1,0",0,0,0,0],["green",0,0,"0,0;1,0;2,0",0,0,0,0],["blue",1,1,"0,0;1,0;0,1;1,1",0,0,0,0,1],["blue",3,0,"1,0;0,1;1,1;2,1",0,0,0,4],["blue",4,2,"1,0;0,1;1,1",0,0,0,0]],"c":[[4,2],[1,4],[5,4],[6,6]]},
+  {"W":7,"H":9,"g":[["left",6,2,"pink",0],["top",1,4,"purple",0],["bottom",3,4,"green",0],["right",2,4,"yellow",0,8],["top",5,2,"blue",0],["left",1,3,"red",0],["bottom",0,3,"purple",0],["right",0,2,"green",0]],"b":[["green",1,3,"0,0;1,0;2,0;0,1;1,1;2,1",0,0,0,0,0,"red"],["yellow",0,0,"0,0;1,0;1,1;1,2",0,0,0,0],["blue",0,3,"0,0",0,0,0,0],["pink",2,0,"0,0;2,0;0,1;1,1;2,1",0,0,0,0],["green",0,5,"1,0;1,1;0,2;1,2;2,2",0,0,0,0,0,"purple"],["blue",3,6,"0,0;0,1;0,2;1,2",0,0,0,0],["green",5,0,"0,0;0,1;0,2;1,2",0,0,0,0],["pink",0,4,"0,0",0,0,0,0],["green",4,4,"1,0;0,1;1,1;0,2",0,0,0,0],["green",5,6,"0,0;1,0",0,0,0,0],["green",5,7,"0,0",1,0,0,0],["pink",0,5,"0,0",0,0,0,0]],"c":[[2,2],[2,5],[4,3]]},
+  {"W":7,"H":9,"g":[["left",6,3,"teal",0],["bottom",2,4,"purple",0],["left",3,2,"red",0],["top",3,4,"green",0],["right",1,4,"orange",0],["left",0,3,"pink",0],["right",6,3,"red",0],["top",1,2,"orange",0]],"b":[["orange",2,2,"0,0;0,1;1,1",0,0,"h",0],["pink",3,0,"0,0;1,0;0,1;0,2",0,0,0,0],["teal",5,0,"0,0;1,0;0,1;1,1",0,0,0,0,0,"pink"],["purple",0,0,"0,0;1,0;1,1",0,0,0,0,0,0,2],["red",0,7,"0,0;1,0;2,0",0,0,"h",0],["orange",0,5,"0,0;1,0;2,0;1,1;2,1",0,0,0,0],["purple",4,3,"1,0;2,0;0,1;1,1",0,0,0,0],["red",3,7,"0,0;1,0;2,0;0,1;1,1",0,0,0,0],["purple",1,2,"0,0",0,0,0,0],["pink",0,3,"0,0;0,1",0,0,0,0],["red",4,5,"0,0;1,0;1,1",0,0,0,0],["red",6,4,"0,0;0,1",0,0,0,0,0,0,2]],"c":[[4,3],[2,8],[0,6]]},
+  {"W":7,"H":9,"g":[["right",5,4,"teal",0],["top",2,2,"red",0],["right",1,3,"orange",0],["bottom",0,3,"pink",0],["bottom",3,3,"blue",0],["left",5,4,"purple",0],["top",4,3,"purple",0,0,4]],"b":[["purple",2,3,"1,0;0,1;1,1;2,1",0,0,0,0],["teal",0,5,"0,0;1,0;2,0;0,1;1,1;2,1",0,0,"h",0],["red",3,6,"1,0;0,1;1,1;1,2",0,0,0,0],["orange",0,2,"0,0;1,0;2,0;1,1",0,0,0,0],["purple",0,0,"0,0;1,0;1,1;2,1",0,0,0,0],["teal",3,0,"0,0;1,0;0,1",0,0,0,0],["orange",5,5,"0,0;0,1;0,2",0,0,0,10],["purple",5,1,"1,0;0,1;1,1",0,0,"v",0],["purple",1,7,"0,0;1,0;1,1",4,0,0,0],["orange",6,0,"0,0",0,0,0,0,0,0,2],["purple",6,6,"0,0",0,0,0,0,0,"orange"],["purple",6,4,"0,0",0,0,0,0],["orange",4,3,"0,0;1,0",0,0,0,0]],"s":[[6,8]],"c":[[0,8],[2,0]]},
+  {"W":7,"H":9,"g":[["left",1,4,"yellow",1],["bottom",2,4,"pink",0,0,1],["top",3,3,"orange",0,9],["left",6,3,"green",0],["bottom",0,2,"purple",0],["right",4,2,"blue",0],["right",0,3,"pink",0],["top",1,2,"pink",0]],"b":[["yellow",4,6,"0,0;1,0;0,1;0,2",0,0,0,0,0,"purple"],["pink",5,4,"1,0;0,1;1,1;1,2",0,0,0,0,0,"purple"],["orange",1,7,"0,0;1,0;2,0;0,1;1,1;2,1",0,0,0,0,0,0,1],["yellow",6,0,"0,0",0,0,0,0],["pink",5,1,"1,0;1,1;0,2;1,2",0,0,0,0],["purple",4,1,"0,0;0,1",0,1,0,0],["pink",2,4,"1,0;1,1;0,2;1,2",0,0,0,0],["pink",1,4,"1,0;0,1;1,1",0,0,0,0],["purple",3,1,"0,0;0,1;0,2",0,0,0,0],["pink",0,2,"0,0;0,1;1,1;0,2;1,2",0,0,0,0],["pink",3,0,"0,0;1,0",1,0,0,0],["pink",2,2,"0,0;0,1",0,0,0,0]],"c":[[4,3],[1,1]]},
+  {"W":7,"H":9,"g":[["right",4,4,"teal",0],["bottom",4,2,"blue",0,10],["bottom",1,2,"pink",0],["top",3,2,"green",0],["left",2,2,"orange",0],["top",0,3,"red",0],["right",0,2,"red",0],["left",5,2,"teal",0]],"b":[["blue",1,0,"1,0;1,1;0,2;1,2",0,0,0,0,0,0,1],["pink",3,0,"0,0;1,0;0,1;0,2",3,0,0,0],["red",0,6,"0,0;1,0;0,1;1,1",0,0,0,0],["teal",4,0,"1,0;0,1;1,1",0,0,0,0],["pink",6,0,"0,0;0,1",0,0,0,0],["orange",6,6,"0,0;0,1",0,0,0,0,0,"pink"],["red",6,2,"0,0;0,1;0,2",0,0,0,0],["pink",4,2,"0,0;1,0",0,0,0,0],["orange",3,7,"0,0;0,1;1,1;2,1",0,0,0,0],["pink",1,1,"0,0",0,0,0,0,0,0,2],["orange",4,6,"0,0;0,1;1,1",0,0,0,0],["red",0,2,"0,0;0,1;0,2;0,3",1,0,0,0],["pink",2,3,"0,0;0,1;0,2",0,0,0,0]],"s":[[6,8],[3,3]],"c":[[2,7],[0,0],[2,8],[2,6]]},
+  {"W":7,"H":9,"g":[["right",6,3,"red",2],["top",0,2,"teal",0],["top",3,3,"blue",0],["left",4,2,"orange",0],["left",1,2,"green",1],["right",2,4,"pink",0],["bottom",2,4,"teal",0],["left",6,3,"blue",0]],"b":[["green",5,7,"0,0;0,1",0,0,0,0,0,0,1],["pink",1,5,"0,0;0,1;0,2;0,3",0,0,0,0],["teal",0,0,"0,0;1,0;2,0;0,1",0,0,0,0],["orange",3,6,"0,0;1,0;2,0;3,0",0,0,0,0,0,"pink"],["pink",0,1,"1,0;0,1;1,1;1,2",0,1,0,0],["red",6,7,"0,0",0,0,0,0],["teal",6,0,"0,0;0,1;0,2",0,0,0,0],["pink",2,2,"0,0;1,0;2,0;1,1",0,0,0,0],["pink",2,5,"0,0;1,0;2,0;0,1",0,2,0,0],["pink",5,2,"0,0;0,1;1,1",0,0,0,0],["blue",6,4,"0,0",0,0,0,0,0,"orange"],["orange",4,4,"0,0;1,0",0,0,0,0],["blue",3,4,"0,0",0,0,0,0],["orange",2,3,"0,0",0,0,0,0]],"s":[[4,1]],"c":[[0,7],[4,0],[4,3],[5,1]]},
+  {"W":7,"H":9,"g":[["left",2,3,"red",2],["top",0,2,"yellow",0],["right",0,4,"purple",0,0,6],["bottom",0,2,"blue",0],["bottom",4,2,"orange",0,10],["right",7,2,"pink",1],["top",4,2,"purple",0],["left",7,2,"blue",0]],"b":[["blue",5,1,"0,0;1,0;0,1;1,1",0,0,0,0,0,"yellow"],["orange",4,0,"0,0;1,0;0,1;0,2",0,0,0,0,0,"blue"],["pink",0,0,"0,0;1,0;2,0;0,1;1,1;2,1",0,0,0,0],["red",4,6,"1,0;0,1;1,1;1,2",3,1,0,0],["blue",0,2,"0,0;0,1;0,2;1,2",0,0,"v",0],["purple",1,8,"0,0;1,0;2,0;3,0",0,0,0,0],["blue",1,3,"0,0;1,0;2,0;3,0",2,2,0,0],["purple",0,6,"0,0;1,0",0,0,0,0],["purple",0,8,"0,0",0,0,0,0],["blue",6,7,"0,0",0,0,0,0],["purple",1,7,"0,0;1,0",0,0,0,0,1],["purple",0,5,"0,0;1,0",0,0,0,0],["purple",2,6,"0,0",0,0,0,0,0,0,1]],"c":[[4,4],[2,5],[5,5]]},
+  {"W":7,"H":9,"g":[["bottom",0,2,"yellow",0],["bottom",2,4,"pink",0],["left",0,2,"blue",0],["right",5,4,"orange",0],["left",4,3,"purple",0],["right",2,3,"teal",0,8],["top",5,2,"yellow",0]],"b":[["teal",0,2,"0,0;1,0;0,1;1,1;1,2",0,0,"h",0,0,0,1],["yellow",5,3,"0,0;1,0;1,1;0,2;1,2",0,0,"v",0],["pink",5,0,"1,0;0,1;1,1;1,2",0,0,0,0],["blue",0,7,"0,0;1,0;2,0;0,1;1,1;2,1",4,0,0,0],["orange",2,0,"0,0;1,0;1,1",0,0,0,0],["purple",3,2,"1,0;2,0;0,1;1,1",0,0,0,0],["pink",4,4,"0,0;1,0",0,0,0,0,0,"purple"],["orange",1,5,"0,0;1,0;0,1",0,0,0,0],["pink",5,6,"0,0;1,0;0,1;0,2",0,0,0,0],["blue",4,7,"0,0",0,0,0,0,1],["pink",3,5,"0,0;0,1;0,2",0,0,0,0]],"c":[[4,5],[6,7],[0,1]]},
+  {"W":7,"H":9,"g":[["top",0,2,"yellow",0],["bottom",0,3,"teal",1],["left",2,4,"green",0],["right",5,2,"orange",0],["top",5,2,"purple",0],["bottom",5,2,"pink",0,10],["top",3,2,"orange",0],["bottom",3,2,"green",0]],"b":[["pink",0,1,"0,0;1,0;0,1;0,2;1,2",0,0,0,0],["teal",6,1,"0,0;0,1;0,2",0,0,0,0],["green",4,0,"0,0;0,1;1,1;0,2;1,2",0,0,0,0],["orange",1,7,"0,0;1,0;2,0;2,1",0,0,0,0],["green",4,7,"2,0;0,1;1,1;2,1",0,1,0,0],["orange",0,3,"2,0;0,1;1,1;2,1",0,0,0,0],["green",5,6,"0,0;1,0",0,0,0,0],["orange",0,5,"0,0;1,0",0,0,0,0,0,0,2],["orange",4,4,"0,0;0,1;0,2",0,0,0,0],["orange",3,2,"0,0;0,1;0,2",0,0,0,0],["yellow",3,1,"0,0",2,0,0,0,0,"orange"],["orange",5,4,"0,0;1,0",1,0,0,0],["yellow",3,0,"0,0",0,0,0,0]],"c":[[0,0],[2,1],[2,5]]},
+  {"W":7,"H":9,"g":[["right",7,2,"pink",0],["right",5,2,"green",0],["right",0,2,"orange",0],["left",2,2,"purple",0],["top",4,3,"yellow",0],["right",3,2,"teal",0],["top",1,2,"green",0],["left",4,3,"yellow",0]],"b":[["purple",3,7,"1,0;0,1;1,1;2,1",0,0,0,0],["yellow",4,5,"0,0;0,1;1,1",0,0,0,0],["teal",1,7,"0,0;1,0;0,1",0,0,0,0],["orange",0,6,"0,0;1,0;2,0;0,1",0,0,0,0],["purple",4,1,"2,0;0,1;1,1;2,1",0,0,0,0],["yellow",3,4,"0,0;1,0;2,0;3,0",0,0,0,0],["teal",4,1,"0,0;1,0",0,0,0,0],["green",0,4,"0,0;0,1",0,0,0,0],["purple",3,3,"0,0;1,0;2,0",0,0,0,0],["purple",2,3,"0,0;0,1",0,0,0,0,0,"green"],["orange",3,7,"0,0",0,0,0,0,0,0,1],["green",0,1,"0,0;1,0;0,1",1,0,0,0],["orange",2,5,"0,0",0,0,0,0,0,0,1],["green",4,0,"0,0;1,0",0,0,0,0]],"s":[[5,5],[2,1]],"c":[[3,2],[6,0],[1,3],[0,8]]},
+  {"W":7,"H":9,"g":[["left",1,2,"blue",0],["bottom",0,3,"teal",0],["top",1,2,"orange",0],["right",1,2,"green",0],["right",6,3,"pink",1],["bottom",3,2,"yellow",0],["top",4,3,"orange",0],["right",3,3,"yellow",0]],"b":[["orange",3,6,"1,0;0,1;1,1;1,2",0,0,0,0],["green",1,1,"0,0;1,0;2,0;0,1;1,1",0,0,"h",0],["teal",5,0,"0,0;1,0;0,1;0,2;1,2",0,0,0,0],["pink",1,6,"0,0;1,0;1,1;1,2",0,0,0,0,0,0,1],["blue",6,7,"0,0",0,1,0,0],["teal",0,5,"0,0;0,1;0,2;1,2",0,0,0,0],["orange",5,5,"0,0;0,1;0,2",0,0,0,0],["blue",4,5,"0,0",0,0,0,0,0,0,1],["orange",0,1,"0,0;0,1",0,0,0,0],["orange",3,6,"0,0",0,0,0,0],["yellow",0,0,"0,0",0,0,0,0,0,"orange"],["orange",0,3,"0,0;0,1",0,0,0,0,1],["orange",3,3,"0,0;0,1;0,2",0,0,0,0],["yellow",4,3,"0,0;1,0",0,0,0,0],["orange",2,0,"0,0;1,0",0,0,0,0]],"s":[[6,4]],"c":[[4,0],[6,3],[2,3]]},
+  {"W":7,"H":9,"g":[["left",1,2,"red",0],["bottom",0,4,"orange",0,0,0,["orange","purple"]],["top",3,4,"teal",0],["right",3,3,"yellow",0],["bottom",4,2,"purple",0],["top",0,2,"pink",0],["left",4,3,"teal",0],["right",1,2,"red",0]],"b":[["orange",0,0,"0,0;0,1;1,1;0,2;1,2",0,0,"v",0],["teal",6,6,"0,0;0,1;0,2",0,0,"v",0],["yellow",0,5,"1,0;0,1;1,1;0,2",0,0,0,0],["purple",5,0,"0,0;1,0",0,0,0,0],["red",0,8,"0,0;1,0;2,0",0,0,0,0],["teal",2,4,"0,0;0,1;0,2;0,3",0,0,0,0,0,0,1],["yellow",2,0,"0,0;0,1",0,0,0,0,0,"purple"],["purple",3,0,"1,0;0,1;1,1;0,2;1,2",0,0,0,0],["purple",0,3,"0,0;1,0",0,0,0,0],["red",3,8,"0,0",0,0,0,0],["yellow",3,6,"1,0;2,0;0,1;1,1;2,1",1,0,0,0],["yellow",6,2,"0,0;0,1;0,2",0,0,0,0]],"s":[[5,1],[5,3]],"c":[[3,4],[4,4]]},
+  {"W":7,"H":9,"g":[["right",6,2,"pink",0,0,0,["pink","orange"]],["right",2,4,"blue",0],["top",0,4,"orange",0,0,0,["orange","green"]],["bottom",1,4,"teal",0,0,3],["left",3,4,"green",0,11],["top",4,2,"red",0],["bottom",5,2,"teal",0]],"b":[["orange",0,5,"0,0;2,0;0,1;1,1;2,1",0,0,"v",0],["teal",0,1,"0,0;1,0;0,1;1,1",0,0,0,0],["green",4,6,"0,0;1,0;2,0;0,1",0,0,0,0],["red",0,3,"0,0;0,1",0,0,0,0,0,"blue"],["blue",2,0,"0,0;1,0;0,1;1,1;2,1",0,0,0,0],["blue",3,3,"0,0;1,0;1,1;0,2;1,2",0,0,"h",0],["red",6,4,"0,0;0,1",0,0,0,0,0,0,1],["teal",5,7,"0,0",0,0,"v",0],["red",5,1,"0,0;1,0",0,0,0,0,0,0,1],["pink",0,7,"0,0",0,0,0,0],["teal",4,8,"0,0;1,0",0,0,0,0],["teal",0,8,"0,0;1,0",0,0,0,0],["red",5,0,"0,0;1,0",0,0,0,0],["teal",3,7,"0,0",0,0,0,0]],"s":[[2,7],[5,2]],"c":[[3,2],[1,7],[6,7],[2,4]]},
+  {"W":7,"H":9,"g":[["bottom",2,3,"pink",0,0,0,["pink","blue"]],["left",5,3,"orange",0,0,2],["left",2,2,"purple",0],["top",4,2,"pink",0],["right",0,3,"red",0,9],["right",3,4,"teal",0],["top",0,2,"orange",0]],"b":[["orange",0,0,"0,0;0,1;1,1;2,1",0,0,0,0],["purple",0,6,"0,0;1,0;2,0;1,1",0,0,0,0],["pink",3,7,"1,0;0,1;1,1",0,0,0,0,0,"purple"],["red",4,6,"0,0;1,0;1,1;1,2",0,0,0,0],["teal",0,2,"0,0;0,1;0,2;1,2",0,0,0,0,0,0,1],["pink",3,3,"0,0;1,0;0,1;1,1;0,2",0,0,0,0],["teal",4,0,"0,0;1,0;0,1",0,0,0,0],["blue",2,7,"0,0",0,0,"v",0],["teal",5,2,"0,0;0,1;1,1;0,2;1,2",0,0,0,0],["teal",5,5,"0,0",2,0,0,0],["orange",2,8,"0,0",1,0,0,0],["teal",6,8,"0,0",0,0,0,0],["teal",6,6,"0,0;0,1",0,0,0,0]],"s":[[2,5],[1,0]],"c":[[1,8],[0,7]]},
+  {"W":7,"H":9,"g":[["bottom",2,4,"purple",0],["right",3,2,"green",0],["top",2,3,"pink",0,0,0,["pink","orange"]],["right",0,3,"pink",0],["left",5,2,"blue",0],["right",6,3,"red",1],["left",2,2,"orange",0],["top",5,2,"purple",0,0,1]],"b":[["purple",2,0,"0,0;1,0;1,1;0,2;1,2",0,0,"v",0],["green",0,7,"0,0;1,0;0,1;1,1",0,0,0,0],["pink",0,1,"0,0;0,1;0,2",0,0,0,0,0,"purple"],["blue",5,1,"0,0;1,0;1,1",0,0,0,0],["red",1,3,"0,0;1,0;1,1;2,1",0,0,0,0],["purple",0,5,"0,0;1,0;2,0",0,1,0,0],["green",3,7,"0,0;0,1;1,1;2,1",0,0,0,0],["pink",0,6,"0,0",0,0,0,0],["green",5,7,"0,0;1,0;1,1",0,0,0,0,0,0,1],["green",3,6,"0,0;1,0;1,1",0,0,0,0],["orange",5,5,"0,0;0,1",0,0,0,0],["green",4,2,"0,0;1,0;0,1",0,0,0,0],["orange",4,1,"0,0",0,0,0,0,1],["purple",4,0,"0,0;1,0",0,0,0,0,0,0,1]],"c":[[1,6],[2,8],[6,5]]},
+  {"W":7,"H":9,"g":[["top",4,2,"orange",1],["top",0,3,"green",0],["left",4,3,"green",0,0,0,["green","purple"]],["bottom",3,3,"blue",0],["right",7,2,"pink",0],["right",0,2,"red",0],["right",2,4,"purple",0],["left",7,2,"red",0,0,3]],"b":[["orange",0,1,"0,0;0,1;0,2;1,2",0,0,0,0],["purple",2,3,"0,0",0,0,"h",0],["blue",1,1,"0,0;1,0;2,0;1,1;2,1",0,0,0,0],["pink",4,0,"0,0;1,0;1,1",0,0,0,0,0,0,1],["red",5,2,"1,0;0,1;1,1",2,0,0,0,0,"pink"],["purple",4,3,"0,0;0,1;1,1;0,2",0,1,0,0],["blue",0,4,"1,0;0,1;1,1;2,1",0,0,0,0],["pink",1,7,"2,0;0,1;1,1;2,1",0,0,"h",0],["blue",6,5,"0,0;0,1",0,0,0,0,0,"purple"],["blue",5,6,"0,0;0,1;1,1;0,2",0,0,0,0],["red",2,6,"0,0;1,0;2,0",0,0,0,0],["red",0,6,"0,0;1,0;0,1",0,0,0,0]],"s":[[1,2],[3,4]],"c":[[2,7],[0,0],[5,2],[4,8]]},
+  {"W":7,"H":9,"g":[["right",7,2,"pink",0],["right",0,4,"orange",0,0,4],["top",1,3,"blue",0],["right",5,2,"teal",1],["left",3,4,"red",0,0,0,["red","green"]],["top",4,3,"green",2],["bottom",2,3,"red",0,0,0,["red","orange"]]],"b":[["teal",0,2,"0,0;1,0",0,0,0,0,0,"blue"],["red",1,0,"0,0;1,0;1,1;2,1",0,0,0,0,3],["green",0,6,"0,0;1,0;0,1;0,2;1,2",0,0,0,0],["pink",0,4,"0,0;1,0;2,0;0,1;2,1",0,1,0,0],["orange",4,6,"2,0;0,1;1,1;2,1",0,0,0,0],["green",3,4,"1,0;1,1;0,2;1,2;2,2",0,0,0,0],["orange",5,3,"0,0;0,1;1,1;1,2",0,2,0,0,0,0,1],["red",4,1,"0,0;1,0;2,0",0,0,0,0],["pink",3,8,"0,0;1,0;2,0",2,0,0,0],["orange",0,3,"0,0",0,0,0,0],["orange",1,3,"0,0;1,0",0,0,0,3],["orange",2,2,"0,0;1,0",0,0,0,0]],"s":[[3,0]],"c":[[5,2],[6,8],[1,1]]},
+  {"W":7,"H":9,"g":[["top",2,3,"teal",0],["bottom",3,4,"pink",0],["right",5,4,"purple",1],["top",0,2,"red",0],["left",3,3,"yellow",2],["right",2,2,"blue",0,0,0,["blue","pink"]],["left",0,2,"blue",0],["left",7,2,"red",0]],"b":[["pink",1,0,"0,0;1,0;2,0;0,1;1,1",0,0,0,0],["purple",4,0,"1,0;0,1;1,1;0,2",0,0,0,0,0,"pink"],["red",6,0,"0,0;0,1",5,0,0,0],["yellow",4,7,"0,0;1,0;1,1;2,1",0,1,0,0],["blue",5,3,"0,0",0,0,"h",0],["red",1,2,"0,0;1,0;2,0;0,1;2,1",0,0,0,0,3],["yellow",2,6,"0,0;0,1;1,1;1,2",0,0,0,10],["red",6,3,"0,0;0,1",0,2,0,0],["red",1,5,"0,0;0,1;0,2;0,3",0,0,0,0],["red",6,6,"0,0",0,0,0,0,0,"blue"],["red",0,3,"0,0;0,1;0,2;0,3",3,0,0,0],["red",0,2,"0,0",0,0,0,0],["red",0,1,"0,0",1,0,0,0,0,0,2],["blue",5,2,"0,0",0,0,0,0]],"s":[[5,4]],"c":[[2,8],[3,4]]},
+  {"W":7,"H":9,"g":[["bottom",1,4,"green",1],["right",0,2,"orange",0],["top",0,4,"orange",0,0,0,["orange","blue"]],["left",4,4,"red",0,12],["right",3,3,"yellow",0],["right",6,2,"teal",0],["top",4,3,"teal",0,0,2]],"b":[["blue",3,6,"0,0;1,0;2,0;1,1;1,2",4,0,0,0],["red",3,0,"0,0;1,0;2,0",0,0,0,0],["yellow",0,0,"0,0;1,0;2,0;1,1",0,0,0,0],["green",5,4,"0,0;0,1;1,1;1,2",0,0,0,0],["orange",0,7,"0,0",0,1,0,0],["yellow",4,1,"0,0;1,0;1,1",0,0,0,0],["teal",5,8,"0,0;1,0",0,0,0,0],["orange",0,8,"0,0",0,0,0,0],["orange",1,8,"0,0",0,0,0,0],["orange",1,7,"0,0",0,0,0,0,0,"yellow"],["orange",1,6,"0,0",0,0,0,0],["yellow",0,5,"0,0;1,0;2,0;3,0",0,0,0,0],["teal",6,2,"0,0;0,1;0,2",0,0,0,0],["teal",6,1,"0,0",1,0,0,0,0,0,2],["teal",5,7,"0,0",0,0,0,0]],"s":[[4,2]],"c":[[3,7],[1,2],[2,3],[0,2]]},
+  {"W":7,"H":9,"g":[["right",0,3,"teal",0,0,0,["teal","yellow"]],["right",3,3,"pink",0,0,4],["bottom",1,4,"green",2],["top",0,3,"orange",0,9],["top",3,3,"yellow",0],["bottom",5,2,"red",1],["left",6,3,"teal",0],["left",0,2,"pink",0]],"b":[["green",3,1,"0,0;0,1;0,2",0,0,"v",0],["orange",5,0,"0,0;1,0",0,0,0,0,0,"pink"],["red",1,0,"0,0;0,1;0,2",0,0,0,0,0,"teal"],["teal",5,6,"0,0;1,0;0,1;1,1;0,2",0,0,"h",0],["pink",0,6,"1,0;0,1;1,1;0,2;1,2",0,1,0,0],["green",1,3,"0,0;0,1;1,1;1,2",0,0,0,0],["teal",3,7,"0,0;0,1",0,0,0,0,2],["pink",4,1,"0,0;1,0;2,0",0,2,0,0],["teal",4,2,"0,0;1,0",0,0,"h",6],["pink",4,3,"0,0;0,1;0,2;1,2",0,0,0,0],["pink",0,5,"0,0;0,1",0,0,0,0],["pink",6,2,"0,0;0,1;0,2",1,0,0,0],["pink",0,1,"0,0;0,1",0,0,0,0,0,0,2]],"s":[[3,0],[1,5]],"c":[[2,3],[2,8],[3,4]]},
+  {"W":7,"H":9,"g":[["bottom",0,2,"pink",0,0,0,["pink","teal"]],["right",2,4,"yellow",0],["bottom",3,2,"blue",0],["left",3,2,"purple",0],["top",1,4,"teal",0],["left",0,3,"red",0],["left",5,4,"blue",0],["top",5,2,"teal",0]],"b":[["pink",5,5,"0,0;1,0;1,1;1,2",0,0,0,0],["yellow",0,6,"0,0;0,1;0,2",0,0,0,0],["blue",5,0,"0,0;0,1;1,1;0,2;1,2",0,0,0,0,0,"yellow"],["purple",3,7,"2,0;0,1;1,1;2,1",0,0,0,0,0,0,1],["teal",2,4,"0,0;1,0;2,0;1,1;2,1",0,0,"v",0],["teal",3,2,"0,0;1,0;0,1;1,1;2,1",0,0,0,0],["red",2,1,"0,0;1,0;2,0;0,1",0,0,0,7],["pink",1,5,"0,0;0,1;0,2",4,0,"v",0],["purple",2,0,"0,0",0,0,0,0],["red",1,3,"0,0;0,1",0,0,0,0],["purple",1,0,"0,0;0,1",1,0,0,0],["red",0,2,"0,0;0,1;0,2",0,0,0,0]],"s":[[1,2],[5,6]],"c":[[4,0],[2,8]]},
+  {"W":7,"H":9,"g":[["left",0,4,"blue",0,0,1],["top",4,3,"yellow",0,0,0,["yellow","red"]],["right",6,2,"teal",0],["top",2,2,"yellow",0],["bottom",1,2,"pink",0],["top",0,2,"purple",0,0,0,["purple","blue"]],["left",7,2,"blue",0],["bottom",3,2,"yellow",0]],"b":[["red",5,7,"0,0;1,0;1,1",0,0,"v",0,0,0,1],["yellow",5,3,"0,0;1,0;1,1",0,0,0,0],["pink",5,0,"0,0;0,1;1,1;1,2",0,0,0,0,1],["purple",3,5,"0,0;1,0;1,1;1,2",0,0,0,0],["blue",2,1,"2,0;0,1;1,1;2,1",0,0,0,0,0,0,2],["pink",0,1,"0,0;1,0;0,1;1,1;1,2",0,0,0,10],["blue",0,4,"0,0;1,0;0,1",0,0,0,0,0,"pink"],["yellow",2,4,"0,0;0,1;0,2",0,0,0,0,0,"pink"],["blue",1,7,"0,0;2,0;0,1;1,1;2,1",2,0,0,0],["purple",4,0,"0,0",0,0,0,0,0,0,1],["yellow",1,0,"0,0;1,0;1,1",0,0,0,3],["yellow",3,1,"0,0",0,0,0,0]],"s":[[0,6],[4,3]],"c":[[0,0],[6,5],[5,4],[2,7]]},
+  {"W":7,"H":9,"g":[["right",2,2,"red",0],["left",3,3,"blue",0],["right",4,2,"green",0],["top",1,4,"blue",0,0,0,["blue","teal"]],["right",6,2,"purple",0],["bottom",1,2,"pink",1],["bottom",3,4,"blue",0],["left",0,2,"green",0,0,0,["green","purple"]]],"b":[["pink",4,0,"1,0;0,1;1,1;0,2;1,2",0,0,0,0],["red",1,7,"0,0;0,1",0,0,0,0],["blue",3,3,"1,0;2,0;0,1;1,1",0,0,"v",0],["green",4,6,"0,0;1,0;2,0;1,1",0,0,0,0],["teal",1,2,"0,0;0,1;1,1;0,2;1,2",0,0,"v",0],["green",1,0,"2,0;0,1;1,1;2,1",0,1,0,0,0,0,2],["red",2,0,"0,0",0,0,0,0],["green",0,6,"0,0;1,0;2,0",0,0,0,0,0,"blue"],["red",0,0,"0,0",0,0,0,6],["green",1,5,"0,0;1,0;2,0",0,0,0,0],["red",6,0,"0,0;0,1",0,0,0,0],["blue",2,7,"0,0;1,0;1,1;2,1",1,0,0,0],["green",4,4,"1,0;0,1;1,1",0,0,0,0]],"c":[[4,7],[4,0]]},
+  {"W":7,"H":9,"g":[["bottom",3,4,"yellow",0,13],["right",4,2,"blue",2],["left",4,2,"teal",1],["left",6,2,"pink",0],["left",0,4,"green",0,0,0,["green","teal"]],["top",2,2,"red",0],["right",6,2,"green",0],["top",4,3,"red",0]],"b":[["yellow",1,0,"0,0;2,0;0,1;1,1;2,1",0,0,0,0],["blue",0,7,"0,0;0,1",0,0,0,0],["teal",2,8,"0,0;1,0;2,0;3,0",0,0,0,0],["green",4,1,"0,0;1,0;0,1;1,1",0,0,0,0],["blue",0,2,"0,0;1,0;2,0;1,1",0,1,0,0],["pink",3,6,"0,0;1,0;2,0",0,0,"h",0,2],["red",1,8,"0,0",0,0,0,0,0,"pink"],["blue",4,7,"0,0;1,0",0,0,0,0],["pink",3,3,"0,0;1,0;2,0",0,2,0,0],["red",3,7,"0,0",0,0,0,0,0,0,1],["green",5,0,"0,0",0,0,0,0],["pink",6,1,"0,0",0,0,0,0],["green",2,7,"0,0",0,0,0,0,0,0,2],["green",0,3,"0,0;0,1",0,0,0,0],["green",0,5,"0,0;0,1",0,0,0,0],["green",1,6,"0,0;0,1",0,0,0,0],["green",2,3,"0,0;0,1",0,0,0,0]],"c":[[0,0],[4,5],[2,0],[3,4]]},
+  {"W":7,"H":9,"g":[["left",2,4,"blue",0],["right",1,3,"green",0],["bottom",2,4,"yellow",0,0,0,["yellow","teal"]],["top",0,4,"orange",0],["right",6,2,"purple",0,0,0,["purple","green"]],["top",4,3,"teal",0],["bottom",0,2,"yellow",0,0,3]],"b":[["green",1,1,"0,0;1,0;1,1;2,1",0,0,"h",0],["yellow",4,0,"0,0;1,0;1,1;0,2;1,2",0,0,0,0,0,"green"],["purple",2,0,"0,0",0,0,0,0,0,0,1],["blue",2,7,"0,0;0,1;1,1;2,1",0,0,0,0],["yellow",5,3,"1,0;0,1;1,1;0,2",0,0,0,0,0,"blue"],["purple",5,7,"0,0;0,1;1,1",0,0,0,0],["blue",2,5,"0,0;1,0;1,1;1,2",0,0,0,0],["blue",1,5,"0,0;0,1;0,2;0,3",0,0,0,0],["yellow",0,1,"0,0;0,1;0,2",0,0,0,7],["purple",0,6,"0,0",0,0,0,0],["green",6,0,"0,0;0,1",0,0,0,5],["blue",6,7,"0,0",0,0,0,0,0,0,1],["blue",3,4,"0,0;1,0",1,0,0,0],["yellow",0,7,"0,0",0,0,0,0]],"s":[[3,3],[4,7]],"c":[[1,4],[0,4],[6,5],[2,4]]},
+  {"W":7,"H":9,"g":[["bottom",3,3,"teal",0],["left",6,3,"green",0,0,0,["green","teal"]],["top",0,4,"blue",0],["left",3,2,"red",0,0,0,["red","green"]],["top",4,2,"orange",0],["right",6,2,"pink",0],["bottom",0,3,"pink",0,0,4],["right",4,2,"red",0]],"b":[["orange",2,6,"0,0;1,0;0,1;1,1;1,2",0,0,0,0],["pink",5,5,"0,0;1,0;0,1;1,1;0,2;1,2",0,0,0,0],["blue",4,8,"0,0",4,0,0,0],["red",2,3,"0,0;1,0;2,0;0,1",0,0,"h",0],["orange",0,5,"0,0;0,1;0,2",0,0,0,0],["pink",5,2,"0,0;0,1;0,2",0,0,0,0,0,"orange"],["blue",4,0,"0,0;1,0;2,0;0,1;2,1",0,0,0,8],["blue",2,1,"0,0;1,0;1,1;2,1",0,0,0,7],["red",0,0,"0,0;1,0",0,0,0,0,0,0,1],["pink",1,1,"0,0;0,1;0,2",0,0,0,0,0,0,2],["red",4,7,"0,0",0,0,0,0,0,0,1],["pink",1,4,"0,0",0,0,"v",0,1],["green",1,8,"0,0;1,0",0,0,"h",0]],"c":[[6,8],[5,1],[6,3],[1,5]]},
+  {"W":7,"H":9,"g":[["top",0,3,"orange",0],["left",2,2,"yellow",0,0,1],["bottom",0,3,"teal",0,0,0,["teal","pink"]],["left",6,3,"red",1],["top",3,4,"pink",0,10],["bottom",3,3,"teal",0,0,0,["teal","blue"]],["right",5,2,"orange",0],["right",7,2,"yellow",0]],"b":[["pink",4,6,"0,0;0,1;0,2;1,2",0,0,"v",0,0,0,1],["yellow",1,0,"0,0;1,0;2,0;3,0",0,0,0,0],["teal",4,1,"0,0;1,0;0,1",0,0,0,0,3],["red",2,3,"0,0;1,0;2,0;3,0",0,0,0,0],["teal",0,1,"0,0;0,1",0,0,"v",0,3],["orange",0,7,"1,0;0,1;1,1",0,1,0,0],["yellow",0,6,"0,0;0,1",0,0,0,0],["blue",1,3,"0,0;0,1;0,2",0,0,0,0],["yellow",1,6,"0,0;1,0",0,0,0,0],["orange",2,4,"0,0;1,0;2,0",0,0,0,0,0,0,1],["orange",5,3,"1,0;0,1;1,1",0,0,0,0],["yellow",2,5,"0,0;1,0",0,0,0,0,0,"orange"],["orange",4,5,"0,0",0,0,0,3],["orange",5,6,"0,0;1,0;0,1;1,1",0,0,0,0]],"s":[[1,1]],"c":[[0,4],[5,5],[5,2],[0,3]]},
+  {"W":7,"H":9,"g":[["bottom",5,2,"teal",0],["top",0,4,"green",0],["right",3,3,"red",0,11],["left",2,3,"purple",0,0,0,["purple","orange"]],["bottom",1,3,"orange",1],["right",7,2,"yellow",0,0,1],["top",4,3,"yellow",0],["right",0,2,"green",0]],"b":[["teal",1,0,"0,0;0,1",0,0,0,0,0,"yellow"],["green",0,7,"0,0;1,0;2,0;0,1",0,0,0,0],["red",1,0,"1,0;1,1;0,2;1,2;2,2",0,0,0,0,0,0,2],["purple",5,0,"0,0;0,1;1,1;0,2",0,0,0,0,0,"teal"],["orange",1,8,"0,0;1,0;2,0",0,0,"v",0],["teal",0,0,"0,0;0,1;0,2",0,1,0,0],["purple",4,6,"2,0;0,1;1,1;2,1",0,0,0,0,0,0,2],["yellow",0,3,"0,0;0,1;0,2;0,3",0,0,0,0],["yellow",5,8,"0,0",0,0,"h",0],["green",2,5,"0,0;0,1",0,0,0,0,0,0,1],["yellow",4,5,"0,0",0,0,"v",0],["yellow",1,5,"0,0",0,0,0,0],["yellow",4,1,"0,0;0,1;0,2;0,3",0,0,0,0],["yellow",3,1,"0,0",0,0,0,0],["yellow",3,0,"0,0",0,0,0,0]],"s":[[3,7]],"c":[[6,5],[2,4],[5,5],[1,3]]},
+  {"W":7,"H":9,"g":[["bottom",2,3,"purple",0],["left",0,3,"red",1],["top",0,4,"blue",0,0,0,["blue","yellow"]],["left",6,3,"teal",2],["left",4,2,"blue",0,0,7],["right",2,2,"pink",0,10],["right",7,2,"yellow",0,0,0,["yellow","blue"]],["top",5,2,"yellow",0]],"b":[["teal",4,0,"0,0;0,1;1,1;0,2",0,0,0,0,0,"purple"],["blue",3,1,"0,0",4,0,0,0,0,"purple"],["pink",1,7,"1,0;0,1;1,1;2,1",0,0,0,0],["red",4,7,"0,0;1,0;2,0",0,0,0,0],["teal",5,5,"0,0;1,0;1,1",0,1,0,0],["blue",6,0,"0,0",0,0,0,0,0,0,1],["teal",5,2,"1,0;0,1;1,1",0,0,0,0],["blue",2,3,"0,0;1,0;2,0;0,1;1,1;2,1",0,0,0,0],["blue",4,6,"0,0;1,0",0,2,0,0],["blue",0,6,"0,0;1,0;2,0",0,0,0,0],["blue",0,0,"0,0;0,1",0,0,0,0],["blue",0,2,"0,0;1,0;0,1;1,1",0,0,0,4],["yellow",2,1,"0,0;0,1",0,0,0,0],["blue",1,4,"0,0;0,1",0,0,0,0]],"s":[[1,1],[3,5]],"c":[[1,0],[6,1],[4,5]]},
+  {"W":7,"H":9,"g":[["top",2,4,"red",0],["left",4,3,"pink",0],["bottom",0,4,"purple",0],["right",4,2,"pink",0,0,0,["pink","teal"]],["bottom",4,2,"blue",0],["right",2,2,"yellow",0],["left",0,3,"blue",0,0,2],["top",0,2,"teal",0,0,0,["teal","pink"]]],"b":[["purple",4,1,"0,0;0,1;1,1",0,0,0,0],["teal",5,6,"1,0;1,1;0,2;1,2",0,0,0,0],["blue",3,7,"1,0;0,1;1,1",0,0,0,0,0,0,1],["yellow",0,8,"0,0",0,0,0,0,0,"red"],["red",0,6,"1,0;2,0;0,1;1,1",0,0,0,0],["teal",0,0,"0,0;1,0;2,0;0,1;1,1;2,1",0,0,0,11],["red",5,1,"0,0;1,0;1,1",0,0,0,0],["pink",5,5,"0,0;1,0;0,1;0,2",0,0,0,0,2],["blue",5,4,"0,0;1,0",0,0,0,0],["yellow",0,2,"0,0;1,0",0,0,0,0,0,"pink"],["pink",4,0,"0,0",0,0,0,0],["yellow",1,5,"0,0;1,0;2,0;3,0",0,0,0,0,2],["pink",3,0,"0,0;0,1",1,0,0,0],["pink",5,3,"0,0;1,0",0,0,0,0,0,0,1]],"c":[[3,7],[0,5]]},
+  {"W":7,"H":9,"g":[["right",2,4,"pink",0,10],["left",1,4,"purple",0],["top",2,4,"green",0,0,0,["green","red"]],["bottom",1,4,"orange",1],["top",0,2,"green",2],["left",6,3,"yellow",0],["bottom",5,2,"yellow",0],["right",0,2,"red",0,0,0,["red","yellow"]]],"b":[["red",0,7,"2,0;0,1;1,1;2,1",0,0,0,0,0,"purple"],["orange",0,5,"0,0;1,0;1,1;1,2",3,0,0,0],["green",5,7,"0,0;0,1;1,1",4,0,0,0,0,"purple"],["pink",0,0,"0,0;1,0;0,1;1,1",0,0,0,0,2],["purple",4,6,"0,0;1,0;2,0",0,1,0,0],["red",5,2,"1,0;0,1;1,1;1,2",0,0,0,0,0,"purple"],["purple",3,1,"0,0;1,0;2,0;2,1",0,0,0,0,3],["purple",5,4,"0,0;0,1",0,2,0,0,0,0,1],["red",2,3,"0,0;0,1;0,2;0,3",0,0,0,0],["purple",3,2,"0,0;1,0",0,0,0,6],["purple",1,3,"0,0;0,1",3,0,0,0],["purple",2,0,"0,0",0,0,0,0],["purple",2,2,"0,0",0,0,0,3],["purple",1,2,"0,0",0,0,0,0]],"s":[[3,5],[4,0]],"c":[[5,0],[3,4],[4,7],[4,5]]},
+  {"W":7,"H":9,"g":[["right",2,3,"orange",1],["left",3,4,"orange",0,0,0,["orange","blue"]],["top",0,3,"red",2],["right",6,3,"teal",0,0,2],["top",3,3,"pink",0],["bottom",2,3,"green",0,12],["bottom",0,2,"blue",0,0,0,["blue","green"]],["left",0,2,"teal",0]],"b":[["green",2,5,"0,0;1,0;1,1;1,2",0,0,"v",0],["orange",2,7,"2,0;0,1;1,1;2,1",0,0,0,0],["blue",5,4,"0,0;1,0;0,1;1,1;0,2",0,0,0,0,2],["red",0,5,"0,0;0,1;1,1;1,2",4,1,0,0],["pink",1,3,"0,0;0,1;1,1;2,1",0,0,0,0,2],["red",4,1,"0,0;0,1;1,1;2,1;0,2",0,0,0,0,0,"pink"],["teal",6,1,"0,0",5,2,0,0],["pink",0,2,"0,0",0,0,0,0,0,"teal"],["teal",5,1,"0,0",0,0,0,0],["pink",0,1,"0,0;1,0",0,0,0,8],["teal",1,2,"0,0;1,0",0,0,0,0,0,"pink"],["pink",2,0,"0,0;1,0;2,0;0,1",0,0,0,5],["blue",0,7,"0,0",0,0,0,0,0,0,1],["teal",5,7,"0,0",0,0,0,0],["teal",5,8,"0,0",0,0,0,0]],"s":[[3,3]],"c":[[4,4],[2,7],[6,8],[0,8]]},
+  {"W":7,"H":9,"g":[["right",3,4,"blue",1],["top",0,4,"red",0,0,0,["red","green"]],["left",1,2,"teal",0],["left",6,3,"yellow",0],["bottom",2,4,"green",2],["top",4,3,"orange",0],["right",0,2,"orange",0,0,0,["orange","teal"]],["bottom",0,2,"yellow",0,0,2]],"b":[["red",2,5,"0,0;1,0;0,1;1,1;0,2",0,0,"v",0],["teal",3,1,"0,0;0,1",0,0,"h",0,0,0,1],["blue",1,0,"0,0;0,1;1,1",0,0,0,0,0,"teal"],["green",4,0,"0,0;0,1;1,1;1,2",0,0,0,0],["teal",6,6,"0,0;0,1",0,1,0,0],["yellow",3,7,"0,0;1,0",0,0,0,0,0,"teal"],["green",4,3,"0,0;0,1;0,2;0,3",0,0,0,0],["teal",1,2,"0,0",0,0,"h",0],["yellow",0,1,"0,0;0,1;0,2;0,3",0,0,"v",0],["yellow",0,5,"0,0;1,0;0,1;0,2",4,2,0,0,0,0,1],["orange",5,8,"0,0",0,0,0,0],["yellow",2,8,"0,0",0,0,0,0],["orange",5,7,"0,0",0,0,0,0],["orange",5,4,"0,0;0,1;0,2",0,0,0,0],["orange",6,1,"0,0;0,1;0,2",0,0,0,0]],"s":[[1,7],[5,0],[3,8]],"c":[[6,8],[3,0],[2,4],[6,5]]},
+  {"W":7,"H":9,"g":[["top",3,3,"yellow",2],["bottom",4,2,"red",0,0,1],["left",4,4,"orange",0,0,0,["orange","purple"]],["right",5,3,"green",0],["top",1,2,"purple",1],["bottom",0,4,"teal",0],["left",2,2,"orange",0],["right",0,4,"red",0,0,0,["red","orange"]]],"b":[["red",0,0,"0,0;1,0;0,1;1,1;0,2",0,0,0,0,0,"teal"],["orange",4,7,"0,0;1,0;2,0;2,1",0,0,0,0],["purple",2,5,"0,0",0,0,"v",0,0,0,1],["teal",2,0,"1,0;2,0;0,1;1,1",0,0,0,0,0,0,1],["yellow",0,6,"0,0",0,1,0,0],["red",1,6,"1,0;2,0;0,1;1,1",0,0,0,0],["green",0,3,"1,0;0,1;1,1;2,1",0,0,0,0,0,0,2],["red",3,2,"0,0;0,1;1,1;1,2",0,0,0,0],["green",4,1,"0,0;1,0",0,2,0,0],["green",4,4,"1,0;2,0;0,1;1,1",0,0,0,0],["teal",4,8,"0,0;1,0",0,0,0,5],["red",5,2,"0,0;0,1",0,0,0,0],["green",4,6,"0,0;1,0",0,0,0,0],["orange",1,5,"0,0",0,0,0,0]],"s":[[4,2],[0,7]],"c":[[3,5],[5,0]]},
+  {"W":7,"H":9,"g":[["top",0,2,"green",0],["left",0,2,"teal",0,0,0,["teal","orange"]],["right",4,4,"yellow",0],["top",4,3,"teal",2],["left",4,2,"blue",0,0,0,["blue","purple"]],["left",6,3,"purple",1],["bottom",3,3,"yellow",0],["right",0,3,"green",0,0,4]],"b":[["yellow",0,4,"1,0;0,1;1,1;1,2",0,0,"h",0,3],["teal",5,6,"0,0;1,0;0,1;1,1;0,2;1,2",0,0,0,0],["purple",0,7,"0,0;1,0;2,0;1,1",0,0,0,0],["orange",3,6,"0,0;1,0",0,1,0,0,0,0,1],["teal",4,0,"0,0;1,0;2,0;0,1;1,1",0,0,"v",0],["orange",5,5,"0,0;1,0",0,0,0,11],["yellow",0,2,"0,0;1,0;2,0",0,0,0,0],["yellow",1,3,"0,0;1,0;2,0",0,2,0,0,0,0,1],["green",3,4,"0,0;1,0;2,0",0,0,0,0],["yellow",1,0,"0,0",0,0,0,0],["green",2,1,"0,0",0,0,0,0,0,"yellow"],["blue",0,3,"0,0",2,0,0,0],["green",4,3,"0,0;1,0;2,0",0,0,0,0],["green",4,2,"0,0;1,0",0,0,0,0,0,0,1]],"s":[[2,8],[1,1],[4,7],[6,1]],"c":[[0,1],[3,2],[3,0]]},
+  {"W":7,"H":9,"g":[["right",3,2,"red",0],["left",1,4,"teal",0],["left",5,4,"yellow",0,10],["bottom",0,4,"orange",1],["top",2,3,"purple",2],["right",5,4,"blue",0,0,0,["blue","yellow"]],["right",0,3,"blue",0,0,0,["blue","orange"]],["bottom",4,2,"blue",0]],"b":[["blue",0,2,"0,0;0,1;0,2",0,0,0,0],["yellow",5,2,"0,0;1,0",0,0,0,0],["orange",4,0,"0,0;1,0;2,0",0,0,0,0,0,"red"],["blue",1,1,"0,0;0,1;0,2;0,3",0,0,0,0],["purple",0,7,"0,0;1,0",0,1,0,0],["blue",0,6,"0,0;1,0;2,0",0,0,0,0],["purple",4,6,"0,0;1,0;1,1;1,2",0,0,0,0,0,0,2],["purple",4,4,"0,0;1,0;0,1",0,0,0,0],["red",2,1,"0,0;1,0;2,0",0,2,0,0,0,0,1],["red",0,5,"0,0;1,0",0,0,0,0],["red",3,3,"0,0;1,0;2,0",3,0,0,0],["blue",3,2,"0,0",0,0,0,4],["blue",2,3,"0,0;0,1",0,0,0,3],["blue",3,4,"0,0",0,0,0,0]],"s":[[0,0],[6,6],[6,4]],"c":[[6,1],[2,7]]},
+  {"W":7,"H":9,"g":[["bottom",0,2,"blue",0],["right",1,4,"pink",2],["top",3,2,"blue",0,0,0,["blue","red"]],["bottom",3,4,"orange",0,0,2],["left",5,4,"yellow",0],["top",5,2,"purple",1],["right",5,4,"purple",0,0,0,["purple","orange"]],["left",2,3,"red",0]],"b":[["red",3,1,"0,0;0,1;1,1",0,0,"v",0],["orange",3,0,"0,0",0,0,0,0,0,"yellow"],["yellow",2,5,"0,0;1,0;1,1;2,1",0,0,"h",0],["purple",5,0,"0,0;0,1;1,1;0,2;1,2",0,0,"v",0],["blue",1,1,"0,0;1,0",0,1,0,0,0,0,2],["pink",0,8,"0,0",0,0,0,0,3],["red",2,6,"0,0;0,1;0,2",0,0,0,12],["orange",4,6,"1,0;0,1;1,1",4,0,0,0],["yellow",4,4,"0,0;1,0;1,1",5,0,0,0,0,"red"],["blue",0,0,"0,0;0,1;0,2",0,2,0,0],["blue",0,3,"0,0;0,1;0,2",0,0,0,0,0,0,1],["blue",3,3,"0,0;0,1",0,0,0,0],["orange",3,7,"0,0",3,0,0,0],["yellow",2,2,"0,0",0,0,0,0,2],["blue",1,3,"0,0;0,1;0,2",0,0,0,3],["yellow",1,8,"0,0",0,0,0,0]],"s":[[1,0],[5,3],[0,7],[6,5]],"c":[[4,3],[2,0],[1,7]]},
+  {"W":7,"H":9,"g":[["bottom",5,2,"green",2],["top",0,2,"purple",0,12],["top",4,3,"teal",1],["left",7,2,"pink",0],["right",5,4,"yellow",0,0,0,["yellow","green"]],["left",0,4,"blue",0,0,0,["blue","teal"]],["bottom",0,4,"yellow",0],["right",0,3,"blue",0,0,3]],"b":[["teal",1,6,"0,0;2,0;0,1;1,1;2,1",0,0,0,0],["blue",4,6,"0,0;0,1",0,0,0,0],["green",6,2,"0,0;0,1;0,2",0,0,"v",0,0,0,1],["purple",3,3,"1,0;0,1;1,1;1,2",0,0,0,0],["yellow",4,6,"1,0;1,1;0,2;1,2",5,1,0,0],["blue",3,1,"2,0;0,1;1,1;2,1",0,0,0,0],["blue",1,2,"1,0;0,1;1,1;0,2",0,0,0,0,1],["pink",3,0,"0,0;0,1",0,2,0,0],["yellow",0,0,"0,0;0,1;0,2",0,0,0,0,3],["yellow",0,3,"0,0;0,1",0,0,0,11],["pink",2,4,"0,0",0,0,0,0,0,"yellow"],["blue",4,0,"0,0;1,0",0,0,0,0],["yellow",2,5,"0,0",0,0,0,0,0,"pink"],["yellow",0,5,"0,0",0,0,0,0,0,"pink"],["yellow",0,6,"0,0;0,1",0,0,0,0],["yellow",5,4,"0,0",0,0,0,0]],"s":[[3,8]],"c":[[2,1],[6,8],[6,6]]},
+  {"W":7,"H":9,"g":[["bottom",2,3,"orange",0],["right",7,2,"blue",1],["right",1,4,"purple",0],["top",0,2,"green",2],["left",2,4,"pink",0],["top",4,3,"red",0,0,0,["red","purple"]],["left",7,2,"orange",0],["top",2,2,"purple",0,0,0,["purple","blue"]]],"b":[["blue",0,0,"0,0;0,1;1,1",0,0,0,0],["purple",0,4,"1,0;2,0;0,1;1,1;2,1",0,0,0,0],["red",0,8,"0,0;1,0",0,0,0,0,0,"pink"],["orange",4,0,"0,0;1,0;0,1",0,0,0,0],["purple",4,7,"0,0;1,0;0,1;1,1",0,1,0,0],["pink",0,7,"0,0;1,0",0,0,0,0],["orange",6,1,"0,0;0,1;0,2",0,0,0,0],["green",6,8,"0,0",0,0,0,0,0,"pink"],["purple",5,4,"0,0;0,1;0,2",0,0,0,0,0,0,1],["pink",2,2,"0,0;1,0;2,0;3,0",4,2,0,0],["pink",2,8,"0,0",0,0,0,0],["orange",4,3,"0,0;0,1;0,2;0,3",2,0,0,0],["purple",6,7,"0,0",0,0,0,0],["orange",3,4,"0,0;0,1",1,0,0,0],["purple",6,5,"0,0",0,0,0,0]],"s":[[0,3],[2,7],[3,0]],"c":[[1,0],[2,6]]},
+  {"W":7,"H":9,"g":[["left",2,2,"green",0,0,0,["green","orange"]],["right",6,3,"green",2],["right",2,4,"teal",0,12],["bottom",1,2,"yellow",1],["top",0,3,"green",0,0,0,["green","blue"]],["bottom",5,2,"purple",0],["left",4,2,"blue",0],["top",4,3,"orange",0]],"b":[["yellow",1,0,"0,0",0,0,"v",0],["blue",0,6,"0,0",0,0,"v",0,1],["green",1,0,"1,0;0,1;1,1",0,0,0,0,3],["teal",1,7,"0,0;0,1;1,1;2,1",0,0,0,0,0,"blue"],["blue",2,6,"0,0;1,0;0,1;1,1",0,0,0,0],["purple",0,1,"0,0;0,1",0,1,0,0,0,0,1],["orange",4,3,"0,0;1,0",0,0,"h",0],["green",5,1,"0,0;1,0",0,0,0,0],["purple",4,0,"0,0",0,0,0,0,0,"blue"],["blue",0,3,"0,0;1,0;2,0;3,0",0,0,0,0],["purple",6,2,"0,0;0,1",0,2,0,0],["blue",1,4,"1,0;2,0;0,1;1,1",0,0,0,0],["blue",1,4,"0,0",2,0,0,0],["purple",4,7,"0,0;0,1",0,0,0,0],["purple",4,4,"0,0;0,1;0,2",0,0,0,0],["purple",5,5,"0,0;0,1;0,2",0,0,0,3],["purple",6,5,"0,0;0,1",0,0,0,0]],"s":[[5,2],[3,5],[5,8]],"c":[[6,0],[3,0],[5,0],[5,4]]},
+  {"W":7,"H":9,"g":[["right",0,3,"purple",2],["left",1,2,"orange",0,0,0,["orange","yellow"]],["right",6,2,"red",0,11],["bottom",1,4,"green",1],["left",3,2,"yellow",0],["top",2,4,"green",0,0,0,["green","blue"]],["left",6,3,"blue",0],["right",3,2,"yellow",0]],"b":[["purple",1,6,"1,0;0,1;1,1",0,0,0,0,0,"yellow"],["orange",3,1,"0,0;0,1",0,0,"h",0,0,0,2],["red",1,1,"0,0;0,1",0,0,0,0,0,"yellow"],["green",0,1,"0,0",0,0,0,0],["yellow",0,3,"1,0;0,1;1,1;2,1",0,0,0,0],["blue",4,1,"0,0;1,0;2,0;1,1",0,1,0,0],["purple",0,0,"0,0;1,0;2,0;3,0",0,0,"h",0],["yellow",3,3,"0,0;1,0;2,0;0,1;1,1",0,0,"h",11],["yellow",0,8,"0,0;1,0",0,2,0,0],["yellow",5,8,"0,0;1,0",0,0,0,0,0,"blue"],["yellow",3,6,"1,0;0,1;1,1",0,0,0,0,0,0,1],["yellow",6,5,"0,0;0,1",0,0,0,0],["blue",3,5,"0,0;1,0",0,0,0,5],["yellow",5,6,"0,0",0,0,0,0],["yellow",5,4,"0,0",1,0,"h",0],["yellow",6,2,"0,0;0,1",0,0,0,0]],"s":[[0,7],[5,7],[0,3],[4,2]],"c":[[2,3],[1,6],[2,2]]}
 ]/*LEVELS-END*/;
 const CAMPAIGN = LEVELS.length;
 const INTROS = {
@@ -1096,6 +1255,18 @@ const INTROS = {
     title: 'Parede com contador',
     body: 'O número diz quantos blocos ainda podem passar por ela. Quando chega a zero, ela fecha. Escolha bem quem usa cada parede.',
   },
+  layer: {
+    title: 'Bloco com casca',
+    body: 'A borda é a casca e o miolo é a cor de verdade. Encoste na parede da cor da casca: ela quebra e o bloco fica. Depois leve o miolo até a parede da cor dele.',
+  },
+  glass: {
+    title: 'Bloco de vidro',
+    body: 'O número diz quantas vezes ele ainda pode ser arrastado. Se acabar antes de ele sair, o vidro racha e ele não se move mais.',
+  },
+  chameleon: {
+    title: 'Parede camaleão',
+    body: 'Ela troca de cor a cada jogada. As pontas mostram a próxima cor. Leve o bloco quando ela estiver da cor dele.',
+  },
   coin: {
     title: 'Moedas no tabuleiro',
     body: 'Passe um bloco por cima de uma moeda para pegar. Cada uma vale 5 a mais quando você vence o nível.',
@@ -1115,12 +1286,17 @@ const TIPS = {
   mystery: 'O bloco "?" mostra a cor quando outros saem.',
   limit: 'O número na parede é quantos blocos ainda passam.',
   coin: 'Passe um bloco por cima das moedas para pegá-las.',
+  layer: 'Quebre a casca na parede da cor dela antes de sair.',
+  glass: 'O vidro só aguenta poucos arrastos. Planeje antes.',
+  chameleon: 'A parede camaleão troca de cor a cada jogada.',
 };
 const WORLDS = [
   { from: 1, name: 'Primeiros passos' },
   { from: 26, name: 'Gelo e pedra' },
   { from: 51, name: 'Paredes vivas' },
   { from: 76, name: 'Mestre dos blocos' },
+  { from: 101, name: 'Cascas e vidro' },
+  { from: 126, name: 'Camaleão' },
 ];
 const COIN_CELL = 5;
 const MYSTERY = { base: '#9aa3b5', dark: '#687188', light: '#d3d8e2' };
@@ -1212,7 +1388,23 @@ const gateLeft = g => (g.limit ? g.limit - gateUsed(g) : Infinity);
 const isOpen = g => !isLocked(g) && gateIceLeft(g) === 0 && gateLeft(g) > 0;
 const openGates = () => state.gates.filter(isOpen);
 const isHidden = b => !!b.hide && goneCount() < b.hide;
-const colorOf = b => (b.hide && isHidden(b) ? MYSTERY : COLORS[b.color]);
+const curColor = b => (b.layer && !b.peeled ? b.layer : b.color);
+const colorOf = b => (b.hide && isHidden(b) ? MYSTERY : COLORS[curColor(b)]);
+const glassLeft = b => (b.glass ? b.glass - (b.drags || 0) : Infinity);
+const isCracked = b => !!b.glass && !b.gone && glassLeft(b) <= 0;
+const canMove = b => !isFrozen(b) && !isCracked(b);
+// Chameleon walls show cycle[moves % 2]; everything else reads g.color as usual.
+function syncGateColors() {
+  for (const g of state.gates) {
+    if (!g.cycle) continue;
+    const c = g.cycle[state.moves % 2];
+    if (g.color !== c) { g.color = c; g.swapT = 0.35; }
+  }
+}
+// Open walls as they will look after `ahead` more moves (for hints).
+function openGatesAhead(ahead) {
+  return openGates().map(g => (g.cycle ? { ...g, color: g.cycle[(state.moves + ahead) % 2] } : g));
+}
 function gateReason(g) {
   if (isLocked(g)) return 'Parede trancada. Tire o bloco com a chave primeiro.';
   const f = gateIceLeft(g);
@@ -1250,12 +1442,13 @@ function startLevel(n) {
 }
 function resetBlocks() {
   const L = state.level;
-  state.gates = L.gates.map(g => ({ ...g, openT: 0, shake: 0, wasFrozen: (g.ice || 0) > 0, thawT: 0 }));
+  state.gates = L.gates.map(g => ({ ...g, color: g.cycle ? g.cycle[0] : g.color, openT: 0, shake: 0, wasFrozen: (g.ice || 0) > 0, thawT: 0, swapT: 0 }));
   state.coinCells = (L.coins || []).map(([x, y]) => ({ x, y, taken: false, t: 0 }));
   state.levelCoins = 0;
   state.blocks = L.blocks.map(b => ({
     id: b.id, shape: b.shape, color: b.color, x: b.x, y: b.y, ice: b.ice || 0, key: b.key || 0, axis: b.axis || 0, bomb: b.bomb || 0,
     hide: b.hide || 0, wasHidden: (b.hide || 0) > 0, via: null,
+    layer: b.layer || 0, peeled: false, glass: b.glass || 0, drags: 0, wasCracked: false,
     rx: b.x, ry: b.y, gone: false, exiting: null, removed: false, shake: 0, wasFrozen: (b.ice || 0) > 0, iceT: 0,
   }));
   for (const b of state.blocks) if (b.key) initChain(b);
@@ -1263,6 +1456,7 @@ function resetBlocks() {
   $('winOverlay').hidden = true;
   $('loseOverlay').hidden = true;
   $('endOverlay').hidden = true;
+  syncGateColors();
 }
 
 /* ---------- HUD ---------- */
@@ -1274,7 +1468,7 @@ function updateHud() {
   const left = active().length;
   const status = $('status');
   const fresh = state.moves === 0 ? newMechanic(state.n) : null;
-  if (state.moves === 0 && state.n === 1) status.textContent = 'Segure um bloco e leve até a parede da mesma cor.';
+  if (state.moves === 0 && state.n === 1) status.textContent = 'Arraste um bloco e empurre contra a parede da mesma cor.';
   else if (fresh) status.textContent = TIPS[fresh];
   else status.innerHTML = `<span><b>${left}</b> ${left === 1 ? 'bloco restante' : 'blocos restantes'} · <b>${state.moves}</b> ${state.moves === 1 ? 'movimento' : 'movimentos'}</span>`;
   $('undoBtn').disabled = state.undo.length === 0;
@@ -1308,6 +1502,9 @@ function maybeIntro() {
   if (state.blocks.some(b => b.hide)) kinds.push('mystery');
   if (state.gates.some(g => g.limit)) kinds.push('limit');
   if ((state.coinCells || []).length) kinds.push('coin');
+  if (state.blocks.some(b => b.layer)) kinds.push('layer');
+  if (state.blocks.some(b => b.glass)) kinds.push('glass');
+  if (state.gates.some(g => g.cycle)) kinds.push('chameleon');
   const kind = kinds.find(k => !state.seen.includes(k));
   if (!kind) return;
   state.seen.push(kind); save();
@@ -1350,6 +1547,15 @@ function drawIntroArt(kind) {
       state.blocks = saveBlocks;
     } else if (kind === 'coin') {
       drawCoin(96, 96, 46, 0);
+    } else if (kind === 'layer') {
+      const b = { ...two, color: 'yellow', layer: 'purple' };
+      drawBlockDepth(b, 24, 60, 0); drawBlockTop(b, 24, 60, 0); drawCore(b, 24, 60);
+    } else if (kind === 'glass') {
+      const b = { ...two, color: 'teal', glass: 1, drags: 0 };
+      drawBlockDepth(b, 24, 60, 0); drawBlockTop(b, 24, 60, 0); drawGlass(b, 24, 60, 1, false);
+    } else if (kind === 'chameleon') {
+      const r = { x: 26, y: 74, w: 140, h: 44 };
+      drawChameleonGate(r, 'red', 'blue', true, 0);
     } else {
       geo.cs = 96;
       const b = { id: 2, shape: makeShape([[0,0]]), color: 'orange', bomb: 3 };
@@ -1410,6 +1616,9 @@ const sfx = {
   unlock: () => { tone(880, 0.08, 'square', 0.05); [988, 1319, 1760].forEach((f, i) => tone(f, 0.25, 'triangle', 0.09, null, 0.08 + i * 0.07)); },
   locked: () => { tone(220, 0.06, 'square', 0.06); tone(200, 0.08, 'square', 0.06, null, 0.07); },
   tick: () => tone(1400, 0.05, 'square', 0.04),
+  peel: () => { noise(0.18, 0.18, 2600); tone(700, 0.12, 'triangle', 0.1, 1200); },
+  crack: () => { noise(0.25, 0.2, 5200); tone(2400, 0.08, 'square', 0.03, 900); },
+  swap: () => tone(900, 0.06, 'sine', 0.04, 1200),
   coin: () => { tone(1320, 0.07, 'square', 0.05); tone(1760, 0.12, 'square', 0.05, null, 0.06); },
   reveal: () => [660, 880, 1320].forEach((f, i) => tone(f, 0.12, 'sine', 0.08, null, i * 0.05)),
   boom: () => { noise(0.6, 0.4, 260); tone(140, 0.55, 'sawtooth', 0.14, 35); },
@@ -1500,7 +1709,7 @@ function pointerPos(e) {
   const r = canvas.getBoundingClientRect();
   return { x: e.clientX - r.left, y: e.clientY - r.top };
 }
-function snapshot() { return state.blocks.map(b => ({ id: b.id, x: b.x, y: b.y, gone: b.gone })); }
+function snapshot() { return state.blocks.map(b => ({ id: b.id, x: b.x, y: b.y, gone: b.gone, peeled: b.peeled, drags: b.drags })); }
 
 canvas.addEventListener('pointerdown', e => {
   if (state.won || state.lost || state.drag) return;
@@ -1518,6 +1727,11 @@ canvas.addEventListener('pointerdown', e => {
     b.shake = 0.35; sfx.deny(); buzz(15);
     const k = iceLeft(b);
     toast(`Congelado. ${k === 1 ? 'Falta 1 bloco sair' : `Faltam ${k} blocos saírem`} para derreter.`);
+    return;
+  }
+  if (isCracked(b)) {
+    b.shake = 0.35; sfx.deny(); buzz(15);
+    toast('Esse vidro rachou e não se move mais. Use Desfazer.');
     return;
   }
   try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
@@ -1565,19 +1779,29 @@ function slideAxis(d, axis, step) {
   }
   return false;
 }
-function checkGates(d) {
+// A block leaves (or breaks its shell) only when the finger pushes it into the wall, so sliding
+// along a wall past an opening does nothing.
+function checkGates(d, tx, ty) {
   const b = d.b, { W, H } = state.level;
   const ix = Math.round(d.fx), iy = Math.round(d.fy);
   if (Math.abs(d.fx - ix) > 0.34 || Math.abs(d.fy - iy) > 0.34) return false;
   if (!canPlace(b.shape, ix, iy, d.occ, b.id, W, H)) return false;
-  const g = exitAt(b.shape, ix, iy, b.color, d.occ, b.id, d.open, W, H);
+  const pushing = g => (tx - ix) * DIRS[g.side][0] + (ty - iy) * DIRS[g.side][1] > 0.2;
+  const g = exitAt(b.shape, ix, iy, curColor(b), d.occ, b.id, d.open.filter(pushing), W, H);
+  if (g && b.layer && !b.peeled) {
+    // the shell breaks on its wall and the block stays where it is
+    b.x = ix; b.y = iy; b.rx = d.fx; b.ry = d.fy;
+    peelShell(b, g);
+    endDrag(true);
+    return true;
+  }
   if (g) {
     b.x = ix; b.y = iy;
     startExit(b, g);
     endDrag(true);
     return true;
   }
-  const lockedGate = exitAt(b.shape, ix, iy, b.color, d.occ, b.id, d.locked, W, H);
+  const lockedGate = exitAt(b.shape, ix, iy, curColor(b), d.occ, b.id, d.locked.filter(pushing), W, H);
   if (lockedGate && !d.warned) {
     d.warned = true; lockedGate.shake = 0.4; sfx.locked(); buzz(15);
     toast(gateReason(lockedGate));
@@ -1591,7 +1815,7 @@ canvas.addEventListener('pointermove', e => {
   let tx = (p.x - d.offX - geo.bx) / geo.cs, ty = (p.y - d.offY - geo.by) / geo.cs;
   if (d.b.axis === 'h') ty = d.fy; else if (d.b.axis === 'v') tx = d.fx;
   // a block already sitting at an open exit leaves as soon as it is pushed
-  if (checkGates(d)) return;
+  if (checkGates(d, tx, ty)) return;
   const STEP = 0.08;
   let blocked = false;
   for (let i = 0; i < 400; i++) {
@@ -1606,7 +1830,7 @@ canvas.addEventListener('pointermove', e => {
     const rest = first[2] === 'x' ? tx - d.fx : ty - d.fy;
     const step2 = Math.max(-STEP, Math.min(STEP, rest));
     if (Math.abs(step2) > 1e-4) moved = slideAxis(d, first[2], step2) || moved;
-    if (checkGates(d)) return;
+    if (checkGates(d, tx, ty)) return;
     if (!moved) { blocked = true; break; }
     collectCoins(d.b, Math.round(d.fx), Math.round(d.fy));
   }
@@ -1628,7 +1852,11 @@ function endDrag(exited) {
   }
   const s0 = d.snap[b.id];
   const counted = exited || s0.x !== b.x || s0.y !== b.y;
-  if (counted) { state.undo.push(d.snap); state.moves++; }
+  if (counted) { state.undo.push(d.snap); state.moves++; syncGateColors(); }
+  if (counted && b.glass && !b.gone) {
+    b.drags++;
+    if (isCracked(b)) crackGlass(b);
+  }
   state.drag = null;
   updateHud();
   if (counted) {
@@ -1658,6 +1886,22 @@ function explode(b) {
 canvas.addEventListener('pointerup', e => { if (state.drag && e.pointerId === state.drag.pid) endDrag(); });
 canvas.addEventListener('pointercancel', e => { if (state.drag && e.pointerId === state.drag.pid) endDrag(); });
 
+function peelShell(b, g) {
+  const { cs, bx, by } = geo;
+  const shell = COLORS[b.layer];
+  b.peeled = true;
+  sfx.peel(); buzz(20);
+  for (const [cx, cy] of b.shape.cells)
+    burst(bx + (b.x + cx + 0.5) * cs, by + (b.y + cy + 0.5) * cs, reduceMotion ? 3 : 10, [shell.base, shell.light, shell.dark], 3.5, 1.5);
+  g.shake = 0.2;
+}
+function crackGlass(b) {
+  const { cs, bx, by } = geo;
+  sfx.crack(); buzz([20, 30, 20]);
+  for (const [cx, cy] of b.shape.cells)
+    burst(bx + (b.x + cx + 0.5) * cs, by + (b.y + cy + 0.5) * cs, reduceMotion ? 2 : 6, ['#ffffff', '#dbeaf5', '#b9cfe0'], 2, 1);
+  toast('O vidro rachou: esse bloco não se move mais.');
+}
 function collectCoins(b, x, y) {
   const { cs, bx, by } = geo;
   for (const c of state.coinCells) {
@@ -1692,11 +1936,13 @@ function doUndo() {
       if (b.key) { initChain(b); state.flights = state.flights.filter(f => f.id !== b.id); }
     }
     b.x = s.x; b.y = s.y; b.gone = s.gone;
+    b.peeled = !!s.peeled; b.drags = s.drags || 0;
   }
   for (const g of state.gates) if (isLocked(g)) g.openT = 0;
   for (const b of state.blocks) { b.wasFrozen = isFrozen(b); b.wasHidden = isHidden(b); }
   for (const g of state.gates) g.wasFrozen = gateIceLeft(g) > 0;
   state.moves = Math.max(0, state.moves - 1);
+  syncGateColors();
   state.hint = null;
   sfx.pick();
   updateHud();
@@ -1962,28 +2208,49 @@ function findHint() {
   const { W, H } = state.level;
   const open = openGates();
   const occ = buildOcc();
-  const movable = active().filter(b => !isFrozen(b));
+  const movable = active().filter(canMove);
   const urgency = b => (b.bomb ? bombLeft(b) : 999);
   const plain = open.filter(g => !g.limit);
   let best = null;
+  const after = openGatesAhead(1);
+  const route = b => {
+    if (b.layer && !b.peeled) {
+      // break the shell where the core can still get out afterwards
+      const spots = search(b.shape, b.x, b.y, b.layer, occ, b.id, open, W, H, true, b.axis).all
+        .filter(q => exitAt(b.shape, q.x, q.y, b.layer, occ, b.id, open, W, H));
+      const q = spots.find(q => search(b.shape, q.x, q.y, b.color, occ, b.id, after, W, H, false, b.axis).found) || spots[0];
+      return q ? { found: true, x: q.x, y: q.y, dist: q.d } : { found: false };
+    }
+    const r = search(b.shape, b.x, b.y, curColor(b), occ, b.id, plain, W, H, false, b.axis);
+    return r.found ? r : search(b.shape, b.x, b.y, curColor(b), occ, b.id, open, W, H, false, b.axis);
+  };
+  // Follow the planned solution while it still applies: the block placed last leaves first.
+  {
+    const next = active().reduce((m, b) => (!m || b.id > m.id ? b : m), null);
+    if (next && canMove(next)) {
+      const r = route(next);
+      if (r.found) return { block: next, x: r.x, y: r.y, dist: r.dist };
+    }
+  }
   for (const b of movable) {
-    let r = search(b.shape, b.x, b.y, b.color, occ, b.id, plain, W, H, false, b.axis);
-    if (!r.found) r = search(b.shape, b.x, b.y, b.color, occ, b.id, open, W, H, false, b.axis);
+    const r = route(b);
     if (!r.found) continue;
     const c = { block: b, x: r.x, y: r.y, dist: r.dist, u: urgency(b) };
     if (!best || c.u < best.u || (c.u === best.u && c.dist < best.dist)) best = c;
   }
   if (best) return best;
-  // Nothing can leave right now: look for one move that frees another block.
+  // Nothing can leave right now: look for one move that frees another block
+  // (that move also flips any chameleon wall). Glass with one drag left is not moved for this.
+  const next = openGatesAhead(1);
   for (const a of movable) {
-    const spots = search(a.shape, a.x, a.y, a.color, occ, a.id, open, W, H, true, a.axis).all;
+    if (glassLeft(a) <= 1) continue;
+    const spots = search(a.shape, a.x, a.y, curColor(a), occ, a.id, open, W, H, true, a.axis).all;
     for (const s of spots) {
       if (s.d === 0) continue;
       const occ2 = buildOcc(a.id);
       for (const [cx, cy] of a.shape.cells) occ2[(s.y + cy) * W + s.x + cx] = a.id;
       for (const b of movable) {
-        if (b === a) continue;
-        if (search(b.shape, b.x, b.y, b.color, occ2, b.id, open, W, H, false, b.axis).found) return { block: a, x: s.x, y: s.y };
+        if (search(b.shape, b === a ? s.x : b.x, b === a ? s.y : b.y, curColor(b), occ2, b.id, next, W, H, false, b.axis).found) return { block: a, x: s.x, y: s.y };
       }
     }
   }
@@ -2089,6 +2356,7 @@ function update(dt) {
     }
     g.wasFrozen = frozen;
     if (g.thawT > 0) g.thawT = Math.max(0, g.thawT - dt);
+    if (g.swapT > 0) g.swapT = Math.max(0, g.swapT - dt);
   }
   for (const b of state.blocks) {
     if (b.gone || !b.hide) continue;
@@ -2307,7 +2575,7 @@ function drawPadlock(cx, cy, s, open) {
 }
 function drawGates(time) {
   const ctx = C();
-  const sel = state.drag && !isHidden(state.drag.b) ? state.drag.b.color : null;
+  const sel = state.drag && !isHidden(state.drag.b) ? curColor(state.drag.b) : null;
   for (const g of state.gates) {
     const col = COLORS[g.color];
     const r0 = gateRect(g);
@@ -2328,6 +2596,7 @@ function drawGates(time) {
     ctx.fillStyle = 'rgba(255,255,255,.22)';
     ctx.beginPath(); rr(r.x + 3, r.y + 3, r.w - 6, Math.min(r.h, r.w) * 0.3, 3); ctx.fill();
     if (RT.bg === 'sketch') pencil(rectSegs(r.x, r.y, r.w, r.h), g.start * 7 + g.len, geo.cs * 0.04, '#2a2a3a', geo.cs * 0.03);
+    if (g.cycle) drawChameleonGate(r, g.color, g.cycle[(state.moves + 1) % 2], horiz(g), g.swapT || 0);
     const iceLeftG = gateIceLeft(g);
     if (iceLeftG > 0) { drawGateIce(r, iceLeftG, 1); continue; }
     if (g.thawT > 0) drawGateIce(r, 0, g.thawT / 0.6);
@@ -2439,6 +2708,87 @@ function drawGateClosed(r) {
   const x = r.x + r.w / 2, y = r.y + r.h / 2, k = Math.min(r.w, r.h) * 0.22;
   c.strokeStyle = '#ffffff'; c.lineWidth = Math.max(2, k * 0.45); c.lineCap = 'round';
   c.beginPath(); c.moveTo(x - k, y - k); c.lineTo(x + k, y + k); c.moveTo(x + k, y - k); c.lineTo(x - k, y + k); c.stroke();
+  c.restore();
+}
+// Ends of a chameleon wall show the colour it turns into after the next move.
+function drawChameleonGate(r, now, next, horizontal, flash) {
+  const c = C(), rad = Math.min(r.w, r.h) * 0.35, cap = Math.min(r.w, r.h) * 0.95;
+  const nx = COLORS[next];
+  c.save();
+  c.beginPath(); rr(r.x, r.y, r.w, r.h, rad); c.clip();
+  c.fillStyle = COLORS[now].base; c.fillRect(r.x, r.y, r.w, r.h);
+  c.fillStyle = nx.base;
+  if (horizontal) { c.fillRect(r.x, r.y, cap, r.h); c.fillRect(r.x + r.w - cap, r.y, cap, r.h); }
+  else { c.fillRect(r.x, r.y, r.w, cap); c.fillRect(r.x, r.y + r.h - cap, r.w, cap); }
+  c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = Math.max(1.5, Math.min(r.w, r.h) * 0.08);
+  c.beginPath();
+  if (horizontal) { c.moveTo(r.x + cap, r.y); c.lineTo(r.x + cap, r.y + r.h); c.moveTo(r.x + r.w - cap, r.y); c.lineTo(r.x + r.w - cap, r.y + r.h); }
+  else { c.moveTo(r.x, r.y + cap); c.lineTo(r.x + r.w, r.y + cap); c.moveTo(r.x, r.y + r.h - cap); c.lineTo(r.x + r.w, r.y + r.h - cap); }
+  c.stroke();
+  // little swap arrows on each cap
+  c.strokeStyle = '#ffffff'; c.lineWidth = Math.max(1.2, Math.min(r.w, r.h) * 0.07); c.lineCap = 'round';
+  const ends = horizontal ? [[r.x + cap / 2, r.y + r.h / 2], [r.x + r.w - cap / 2, r.y + r.h / 2]] : [[r.x + r.w / 2, r.y + cap / 2], [r.x + r.w / 2, r.y + r.h - cap / 2]];
+  for (const [x, y] of ends) {
+    const k = cap * 0.22;
+    c.beginPath(); c.arc(x, y, k, Math.PI * 0.15, Math.PI * 1.15); c.stroke();
+    c.beginPath(); c.moveTo(x + k * Math.cos(Math.PI * 1.15), y + k * Math.sin(Math.PI * 1.15)); c.lineTo(x + k * Math.cos(Math.PI * 1.15) + k * 0.5, y + k * Math.sin(Math.PI * 1.15) - k * 0.1); c.stroke();
+  }
+  if (flash > 0) { c.fillStyle = `rgba(255,255,255,${flash * 1.6})`; c.fillRect(r.x, r.y, r.w, r.h); }
+  c.restore();
+}
+// The true colour of a layered block shows as a core inside its shell.
+function drawCore(b, ox, oy) {
+  const c = C(), cs = geo.cs, col = COLORS[b.color];
+  c.save();
+  c.fillStyle = 'rgba(20,24,50,.35)';
+  unionPath(b.shape, ox, oy + cs * 0.025, cs * 0.21, cs * 0.12); c.fill();
+  c.fillStyle = col.base;
+  unionPath(b.shape, ox, oy, cs * 0.21, cs * 0.12); c.fill();
+  c.fillStyle = 'rgba(255,255,255,.4)';
+  for (const [cx, cy] of b.shape.cells) {
+    c.beginPath(); c.ellipse(ox + (cx + 0.38) * cs, oy + (cy + 0.34) * cs, cs * 0.07, cs * 0.04, -0.5, 0, Math.PI * 2); c.fill();
+  }
+  c.restore();
+}
+function drawGlass(b, ox, oy, left, cracked) {
+  const c = C(), cs = geo.cs;
+  c.save();
+  c.fillStyle = cracked ? 'rgba(70,80,100,.4)' : 'rgba(255,255,255,.26)';
+  unionPath(b.shape, ox, oy, cs * 0.05, cs * 0.2); c.fill();
+  c.save();
+  unionPath(b.shape, ox, oy, cs * 0.05, cs * 0.2); c.clip();
+  c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = cs * 0.06;
+  c.beginPath();
+  for (const [cx, cy] of b.shape.cells) {
+    const x = ox + cx * cs, y = oy + cy * cs;
+    c.moveTo(x + cs * 0.15, y + cs * 0.55); c.lineTo(x + cs * 0.55, y + cs * 0.15);
+    c.moveTo(x + cs * 0.4, y + cs * 0.85); c.lineTo(x + cs * 0.85, y + cs * 0.4);
+  }
+  c.stroke();
+  if (cracked) {
+    c.strokeStyle = 'rgba(30,34,52,.85)'; c.lineWidth = cs * 0.035; c.lineJoin = 'round';
+    const r = rng((b.id || 0) * 53 + 1);
+    for (const [cx, cy] of b.shape.cells) {
+      const x = ox + (cx + 0.5) * cs, y = oy + (cy + 0.5) * cs;
+      for (let k = 0; k < 4; k++) {
+        const a = k * Math.PI / 2 + r(); let px = x, py = y;
+        c.beginPath(); c.moveTo(px, py);
+        for (let j = 0; j < 3; j++) { px += Math.cos(a + (r() - 0.5)) * cs * 0.15; py += Math.sin(a + (r() - 0.5)) * cs * 0.15; c.lineTo(px, py); }
+        c.stroke();
+      }
+    }
+  }
+  c.restore();
+  if (!cracked && Number.isFinite(left)) {
+    const [cx, cy] = b.shape.cells[0];
+    const x = ox + (cx + 0.3) * cs, y = oy + (cy + 0.3) * cs, r = cs * 0.17;
+    c.fillStyle = '#ffffff'; c.beginPath(); rr(x - r, y - r, r * 2, r * 2, r * 0.45); c.fill();
+    c.lineWidth = cs * 0.035; c.strokeStyle = '#9fc3dd'; c.stroke();
+    c.fillStyle = left <= 1 ? '#c0392b' : '#1f2b52';
+    c.font = `700 ${Math.round(cs * 0.24)}px Fredoka, Nunito, system-ui, sans-serif`;
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(String(left), x, y + cs * 0.012);
+  }
   c.restore();
 }
 function drawMystery(b, ox, oy) {
@@ -2735,6 +3085,8 @@ function draw(time) {
     if (b.axis) drawRail(b, ox, oy - l);
     if (b.bomb) drawBomb(b, ox, oy - l, bombLeft(b), time);
     if (b.hide && isHidden(b)) drawMystery(b, ox, oy - l);
+    if (b.layer && !b.peeled && !isHidden(b)) drawCore(b, ox, oy - l);
+    if (b.glass) drawGlass(b, ox, oy - l, glassLeft(b), isCracked(b));
     const left = iceLeft(b);
     if (left > 0) drawIce(b, ox, oy, left, 1);
     else if (b.iceT > 0) drawIce(b, ox, oy, 0, b.iceT / 0.5);
@@ -2819,7 +3171,7 @@ window.blocksolveBack = () => {
 };
 
 // Small hook used by automated tests.
-window.__blocksolve = { state, showScreen, playLevel, applyTheme, mechanicsOf, bombLeft, findHint, startExit, startLevel, buildOcc, exitAt, search, openGates, isFrozen, analyze, decodeLevel, LEVELS };
+window.__blocksolve = { curColor, isCracked, canMove, state, showScreen, playLevel, applyTheme, mechanicsOf, bombLeft, findHint, startExit, startLevel, buildOcc, exitAt, search, openGates, isFrozen, analyze, decodeLevel, LEVELS };
 })();
 </script>
 </body>

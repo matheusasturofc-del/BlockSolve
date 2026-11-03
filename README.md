@@ -20,15 +20,18 @@ Esvazie o tabuleiro para passar de nível.
 | Moedas no tabuleiro | 31 | Passe um bloco por cima para pegar. Cada uma vale 5 moedas a mais ao vencer. |
 | Bloco misterioso | 41 | Cinza com "?". A cor aparece depois que alguns blocos saem. |
 | Parede com contador | 51 | Só deixa passar um número limitado de blocos e depois fecha. |
+| Bloco com casca | 101 | A borda é de uma cor e o miolo de outra. Encoste na parede da cor da casca para quebrá-la; depois leve o miolo até a parede da cor dele. |
+| Bloco de vidro | 111 | Só pode ser arrastado um número limitado de vezes. Se acabar antes de sair, racha e trava. |
+| Parede camaleão | 121 | Troca de cor a cada jogada; as pontas mostram a próxima cor. |
 
 ## Conteúdo
 
-- Tela de carregamento, tela inicial (Jogar / Loja / Opções) e seleção de níveis em 4 mundos.
-- **100 níveis** de campanha com dificuldade crescente; depois do 100 abre o modo infinito.
-- Todo nível tem solução garantida pelo gerador, e os 100 foram resolvidos em teste automático arrastando com o mouse.
+- Tela de carregamento, tela inicial (Jogar / Loja / Opções) e seleção de níveis em 6 mundos.
+- **150 níveis** de campanha com dificuldade crescente. Ao vencer o último aparece a mensagem de fim de jogo, e o modo infinito fica disponível.
+- Todo nível tem solução garantida pelo gerador, conferida reproduzindo a solução planejada de cada um; os 150 também foram jogados por um robô arrastando com o mouse.
 - **Loja:** fundos e peças nos estilos Padrão, Colorido e Desenho, comprados com moedas.
 - Opções: som, vibração e apagar progresso. Progresso, moedas e compras ficam salvos no aparelho.
-- Botões no jogo: **Desfazer**, **Reiniciar** e **Dica** (15 moedas; cada nível vale 20).
+- Botões no jogo: **Desfazer**, **Reiniciar** e **Dica** (15 moedas; cada nível vale 20). A dica segue a solução planejada do nível enquanto ela ainda vale.
 
 Para jogar no navegador, abra `index.html`. Não há dependências nem etapa de build.
 
