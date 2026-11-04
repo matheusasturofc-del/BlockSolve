@@ -3,7 +3,7 @@
 Jogo de quebra-cabeça de blocos para navegador (celular e computador).
 
 **Como jogar:** segure um bloco e arraste-o livremente pelo tabuleiro até a parede da mesma cor.
-Ele acompanha o dedo, para quando encosta em outro bloco e se encaixa na casa mais próxima ao soltar.
+Ele acompanha o dedo, contorna sozinho os blocos no caminho e se encaixa na casa mais próxima ao soltar. Para sair, empurre contra a parede.
 Quando o bloco encosta na abertura certa e cabe nela, ele sai do tabuleiro.
 Esvazie o tabuleiro para passar de nível.
 
@@ -15,23 +15,28 @@ Esvazie o tabuleiro para passar de nível.
 | Chave acorrentada e cadeado | 5 | A chave pendura numa corrente com física. Tirar o bloco dela abre a parede trancada. |
 | Pedra | 11 | Obstáculo fixo que nunca sai. |
 | Trilho | 14 | O bloco só anda na horizontal ou só na vertical, e só sai por paredes dessa direção. |
-| Bomba | 18 | O número cai a cada jogada. Se zerar com o bloco no tabuleiro, você perde (dá para desfazer). |
-| Parede congelada | 31 | Só abre depois que alguns blocos saem. |
-| Moedas no tabuleiro | 31 | Passe um bloco por cima para pegar. Cada uma vale 5 moedas a mais ao vencer. |
-| Bloco misterioso | 41 | Cinza com "?". A cor aparece depois que alguns blocos saem. |
-| Parede com contador | 51 | Só deixa passar um número limitado de blocos e depois fecha. |
-| Bloco com casca | 101 | A borda é de uma cor e o miolo de outra. Encoste na parede da cor da casca para quebrá-la; depois leve o miolo até a parede da cor dele. |
-| Bloco de vidro | 111 | Só pode ser arrastado um número limitado de vezes. Se acabar antes de sair, racha e trava. |
-| Parede camaleão | 121 | Troca de cor a cada jogada; as pontas mostram a próxima cor. |
+| Bomba | 20 | O número cai a cada jogada. Se zerar com o bloco no tabuleiro, você perde (dá para desfazer). |
+| Parede congelada e moedas | 40 | A parede só abre depois que alguns blocos saem. Moedas no tabuleiro valem 5 cada ao vencer. |
+| Bloco misterioso | 60 | Cinza com "?". A cor aparece depois que alguns blocos saem. |
+| Parede com contador | 80 | Só deixa passar um número limitado de blocos e depois fecha. |
+| Bloco com casca | 100 | A borda é de uma cor e o miolo de outra: quebre a casca na parede da cor dela e depois tire o miolo. |
+| Bloco de vidro | 120 | Só pode ser arrastado algumas vezes. Se acabar antes de sair, racha e trava. |
+| Parede camaleão | 140 | Troca de cor a cada jogada; as pontas mostram a próxima cor. |
+| Bloco acorrentado | 160 | Preso por correntes até sair o bloco que carrega a chave prateada. |
+| Bloco de duas cores | 180 | Sai pela parede de qualquer uma das duas cores. |
+| Portão | 200 | Abre e fecha a cada jogada. |
+
+A partir da bomba, cada mecânica nova estreia exatamente 20 níveis depois da anterior.
 
 ## Conteúdo
 
-- Tela de carregamento, tela inicial (Jogar / Loja / Opções) e seleção de níveis em 6 mundos.
-- **150 níveis** de campanha com dificuldade crescente. Ao vencer o último aparece a mensagem de fim de jogo, e o modo infinito fica disponível.
-- Todo nível tem solução garantida pelo gerador, conferida reproduzindo a solução planejada de cada um; os 150 também foram jogados por um robô arrastando com o mouse.
-- **Loja:** fundos e peças nos estilos Padrão, Colorido e Desenho, comprados com moedas.
+- Tela de carregamento, tela inicial (Jogar / Loja / Opções) e seleção de níveis em 8 mundos, tela de novidades a cada atualização e dedicatória para a família.
+- **200 níveis** de campanha com dificuldade crescente. Ao vencer o último aparece a mensagem de fim de jogo.
+- **Modo infinito** liberado desde o começo: começa fácil e vai trazendo todas as mecânicas.
+- Todo nível tem solução garantida pelo gerador, conferida reproduzindo a solução planejada de cada um; os 200 também foram jogados por um robô arrastando com o mouse, tanto seguindo a dica quanto sem estratégia (sempre tirando o bloco mais fácil).
+- **Loja:** fundos Padrão, Colorido, Desenho, Noite e Oceano; peças Padrão, Colorido, Desenho, Neon e Pixel.
 - Opções: som, vibração e apagar progresso. Progresso, moedas e compras ficam salvos no aparelho.
-- Botões no jogo: **Desfazer**, **Reiniciar** e **Dica** (15 moedas; cada nível vale 20). A dica segue a solução planejada do nível enquanto ela ainda vale.
+- Botões no jogo: **Desfazer**, **Reiniciar** e **Dica** (a primeira de cada nível é grátis, depois 10 moedas; cada nível vale 20). A dica segue a solução planejada do nível enquanto ela ainda vale.
 
 Para jogar no navegador, abra `index.html`. Não há dependências nem etapa de build.
 

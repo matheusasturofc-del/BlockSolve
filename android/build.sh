@@ -10,8 +10,9 @@ BT="$SDK/build-tools/34.0.0"
 JAR="$SDK/platforms/android-34/android.jar"
 APP="$ROOT/android/app"
 OUT="$ROOT/android/build"
-VERSION_CODE="${VERSION_CODE:-5}"
-VERSION_NAME="${VERSION_NAME:-3.0}"
+APP_VERSION="$(grep -o "APP_VERSION = '[0-9.]*'" "$ROOT/index.html" | grep -o '[0-9][0-9.]*')"
+VERSION_NAME="${VERSION_NAME:-$APP_VERSION}"
+VERSION_CODE="${VERSION_CODE:-$(echo "$APP_VERSION" | awk -F. '{print $1*10+$2}')}"
 
 rm -rf "$OUT" && mkdir -p "$OUT/assets" "$OUT/classes" "$OUT/gen" "$ROOT/dist"
 
