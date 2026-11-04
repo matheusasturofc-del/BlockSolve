@@ -364,6 +364,72 @@ body[data-bg="sketch"] {
   --page-color: #fbf8ef;
 }
 
+.menu-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.menu-row .cta { margin-top: 0; padding-inline: 10px; }
+.cta.more { margin-top: 0; background: #18a7a0; color: var(--paper); box-shadow: 0 5px 0 #0e7671; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.cta.more:active { box-shadow: 0 1px 0 #0e7671; }
+.cta.more svg { width: 26px; height: 26px; }
+
+.game-card {
+  display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: center; gap: 14px;
+  border: 0; border-radius: 22px; padding: 12px 14px 12px 12px; text-align: left; cursor: pointer;
+  background: var(--paper); color: var(--ink); box-shadow: 0 5px 0 var(--paper-edge);
+  font: inherit;
+}
+.game-card:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--paper-edge); }
+.game-card canvas, .ttt-thumb { width: 96px; height: 96px; border-radius: 18px; display: block; max-width: 100%; }
+.gc-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.gc-text b { font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; }
+.gc-text small { color: var(--ink-soft); font-weight: 700; font-size: .88rem; line-height: 1.35; }
+.gc-text em { font-style: normal; font-weight: 800; font-size: .74rem; letter-spacing: .1em; text-transform: uppercase; color: var(--go-dark); }
+.ttt-thumb {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; padding: 8px;
+  background: #26335f;
+}
+.ttt-thumb i { display: grid; place-items: center; background: #34437c; border-radius: 6px; font-style: normal; font-weight: 800; font-size: 1.05rem; line-height: 1; }
+.ttt-thumb .x { color: #ff8a80; } .ttt-thumb .o { color: #8cc2ff; }
+
+.puzzle-screen { gap: 12px; transition: background .6s; }
+.pz-stats { display: grid; grid-template-columns: 0.85fr 0.85fr 1.5fr; gap: 8px; }
+.pz-stat, .pz-theme {
+  background: var(--paper); border-radius: 16px; padding: 8px 12px; box-shadow: 0 3px 0 var(--paper-edge);
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0; color: var(--ink);
+}
+.pz-stat small, .pz-theme small { font-weight: 800; font-size: .66rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+.pz-stat b { font-family: var(--font-display); font-weight: 700; font-size: 1.45rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.pz-theme { flex-direction: row; align-items: center; gap: 10px; border: 0; cursor: pointer; font: inherit; text-align: left; min-width: 0; }
+.pz-theme span { display: flex; flex-direction: column; min-width: 0; }
+.pz-theme b { font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pz-theme i { width: 28px; height: 28px; border-radius: 9px; flex: none; box-shadow: inset 0 0 0 2px rgba(255,255,255,.7); }
+.pz-theme:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--paper-edge); }
+.pz-stage { flex: 1; min-height: 0; width: min(100%, 420px); position: relative; }
+#pzCanvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
+.pz-tip { margin: 0; text-align: center; color: var(--page-ink-soft); font-weight: 700; font-size: .9rem; }
+
+.tabs.three { grid-template-columns: repeat(3, 1fr); }
+.ttt-score { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.ttt-score div { background: var(--paper); border-radius: 16px; padding: 8px 10px; box-shadow: 0 3px 0 var(--paper-edge); text-align: center; }
+.ttt-score small { display: block; font-weight: 800; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
+.ttt-score b { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+.ttt-board {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  background: #26335f; padding: 12px; border-radius: 26px; box-shadow: 0 8px 0 #1a2448;
+  width: min(100%, 360px); aspect-ratio: 1; align-self: center;
+}
+.ttt-cell {
+  border: 0; border-radius: 18px; background: #34437c; cursor: pointer; padding: 0;
+  display: grid; place-items: center; position: relative; transition: background .2s, transform .1s;
+}
+.ttt-cell:active:not(:disabled) { transform: scale(.96); }
+.ttt-cell:disabled { cursor: default; }
+.ttt-cell svg { width: 64%; height: 64%; overflow: visible; }
+.ttt-cell .mark-x { stroke: #ff6b6b; }
+.ttt-cell .mark-o { stroke: #5aa9ff; }
+.ttt-cell svg path, .ttt-cell svg circle { fill: none; stroke-width: 13; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; animation: draw-mark .3s ease-out forwards; }
+.ttt-cell.win { background: #f6b81f; }
+.ttt-cell.win .mark-x, .ttt-cell.win .mark-o { stroke: #1f2b52; }
+@keyframes draw-mark { to { stroke-dashoffset: 0; } }
+.ttt-status { margin: 0; text-align: center; font-family: var(--font-display); font-weight: 600; font-size: 1.25rem; color: var(--page-ink); min-height: 1.6em; }
 .cta.infinite { margin-top: 0; background: #6c5ce7; color: var(--paper); box-shadow: 0 5px 0 #4a3bb5; }
 .cta.infinite:active { box-shadow: 0 1px 0 #4a3bb5; }
 .cta.gold { background: var(--gold); color: var(--ink); box-shadow: 0 5px 0 var(--gold-dark); display: flex; align-items: center; justify-content: center; gap: 10px; }
@@ -441,7 +507,7 @@ body[data-bg="sketch"] {
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes rise { from { transform: translateY(24px) scale(.94); } to { transform: none; } }
 @media (prefers-reduced-motion: reduce) {
-  .overlay, .card, .toast, .screen, .tiles span, .dedication svg { animation: none; }
+  .overlay, .card, .toast, .screen, .tiles span, .dedication svg, .ttt-cell svg path, .ttt-cell svg circle { animation: none; stroke-dashoffset: 0; }
   .coins { transition: none; }
 }
 </style>
@@ -498,6 +564,17 @@ body[data-bg="sketch"] {
     <p class="summary" id="winSummary">8 movimentos</p>
     <p class="reward"><span class="coin"></span><span id="winReward">+20</span></p>
     <button class="cta" id="nextBtn" type="button">Próximo nível</button>
+  </div>
+</div>
+
+<div class="overlay" id="pzOverOverlay" hidden>
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="pzOverTitle">
+    <span class="eyebrow">Encaixe</span>
+    <h2 id="pzOverTitle">Sem espaço!</h2>
+    <p class="summary" id="pzOverSummary">0 pontos</p>
+    <p class="reward"><span class="coin"></span><span id="pzOverReward">+0</span></p>
+    <button class="cta" id="pzAgain" type="button">Jogar de novo</button>
+    <button class="cta quiet" id="pzOverBack" type="button">Voltar</button>
   </div>
 </div>
 
@@ -564,10 +641,16 @@ body[data-bg="sketch"] {
       Jogar
     </button>
     <button class="cta infinite" id="homeEndless" type="button">Modo infinito</button>
-    <button class="cta gold" id="shopBtn" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
-      Loja
-    </button>
+    <div class="menu-row">
+      <button class="cta more" id="moreBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10a5 5 0 0 1 4.9 6l-.8 3.6a2.6 2.6 0 0 1-4.5 1.2L14.8 16H9.2l-1.8 1.8a2.6 2.6 0 0 1-4.5-1.2L2.1 13A5 5 0 0 1 7 7z"/><path d="M8 10v4M6 12h4"/><path d="M15.5 11h.01M17.5 13h.01"/></svg>
+        Mais jogos
+      </button>
+      <button class="cta gold" id="shopBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
+        Loja
+      </button>
+    </div>
     <button class="cta quiet" id="optionsBtn" type="button">Opções</button>
   </div>
   <p class="progress-note" id="homeProgress">Nível 1 de 10</p>
@@ -595,6 +678,62 @@ body[data-bg="sketch"] {
     <button class="tab" id="tabPiece" type="button" role="tab" aria-selected="false">Peças</button>
   </div>
   <div class="shop-list" id="shopList" role="tabpanel"></div>
+</section>
+
+<section class="screen top" id="moreScreen" hidden>
+  <header class="screen-head">
+    <button class="icon-btn" id="moreBack" type="button" aria-label="Voltar ao início"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <h2>Mais jogos</h2>
+    <div class="coins small"><span class="coin"></span><span id="moreCoins">60</span></div>
+  </header>
+  <button class="game-card" id="openPuzzle" type="button">
+    <canvas id="puzzleThumb" width="168" height="168" aria-hidden="true"></canvas>
+    <span class="gc-text"><b>Encaixe</b><small>Arraste as peças, complete linhas e colunas. Limpe o tabuleiro inteiro para ganhar um tema novo.</small><em id="puzzleNote">Recorde: 0</em></span>
+  </button>
+  <button class="game-card" id="openTtt" type="button">
+    <span class="ttt-thumb" aria-hidden="true"><i class="x">✕</i><i></i><i class="o">○</i><i></i><i class="x">✕</i><i class="o">○</i><i class="o">○</i><i></i><i class="x">✕</i></span>
+    <span class="gc-text"><b>Jogo da velha</b><small>Você contra o robô. Escolha fácil, médio ou difícil.</small><em id="tttNote">Vitórias: 0</em></span>
+  </button>
+</section>
+
+<section class="screen top puzzle-screen" id="puzzleScreen" hidden>
+  <header class="screen-head">
+    <button class="icon-btn" id="puzzleBack" type="button" aria-label="Voltar para Mais jogos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <h2>Encaixe</h2>
+    <button class="icon-btn" id="puzzleRestart" type="button" aria-label="Recomeçar a partida">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+    </button>
+  </header>
+  <div class="pz-stats">
+    <div class="pz-stat"><small>Pontos</small><b id="pzScore">0</b></div>
+    <div class="pz-stat"><small>Recorde</small><b id="pzBest">0</b></div>
+    <button class="pz-theme" id="pzTheme" type="button" aria-label="Trocar tema">
+      <i id="pzThemeSwatch"></i><span><small>Tema</small><b id="pzThemeName">Aurora</b></span>
+    </button>
+  </div>
+  <div class="pz-stage" id="pzStage"><canvas id="pzCanvas" aria-label="Tabuleiro do Encaixe"></canvas></div>
+  <p class="pz-tip" id="pzTip">Arraste uma peça para o tabuleiro.</p>
+</section>
+
+<section class="screen top" id="tttScreen" hidden>
+  <header class="screen-head">
+    <button class="icon-btn" id="tttBack" type="button" aria-label="Voltar para Mais jogos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <h2>Jogo da velha</h2>
+    <span class="head-spacer"></span>
+  </header>
+  <div class="tabs three" role="tablist" aria-label="Dificuldade">
+    <button class="tab" type="button" role="tab" data-level="easy" aria-selected="true">Fácil</button>
+    <button class="tab" type="button" role="tab" data-level="medium" aria-selected="false">Médio</button>
+    <button class="tab" type="button" role="tab" data-level="hard" aria-selected="false">Difícil</button>
+  </div>
+  <div class="ttt-score">
+    <div><small>Você · ✕</small><b id="tttWins">0</b></div>
+    <div><small>Empates</small><b id="tttDraws">0</b></div>
+    <div><small>Robô · ○</small><b id="tttLosses">0</b></div>
+  </div>
+  <div class="ttt-board" id="tttBoard" role="grid" aria-label="Tabuleiro do jogo da velha"></div>
+  <p class="ttt-status" id="tttStatus">Sua vez: você é o ✕.</p>
+  <button class="cta" id="tttNew" type="button">Nova partida</button>
 </section>
 
 <section class="screen top" id="optionsScreen" hidden>
@@ -1704,8 +1843,15 @@ const WORLDS = [
   { from: 276, name: 'Espelho' },
 ];
 const COIN_CELL = 5;
-const APP_VERSION = '3.2';
+const APP_VERSION = '3.3';
 const CHANGELOG = [
+  { v: '3.3', items: [
+    'Botão Mais jogos na tela inicial, com dois jogos novos.',
+    'Encaixe: arraste as peças para o tabuleiro e complete linhas e colunas. Cada vez que você limpa o tabuleiro inteiro, o tema de fundo muda (8 temas para colecionar).',
+    'No Encaixe as peças usam o estilo escolhido na loja, e o recorde e a partida ficam salvos.',
+    'Jogo da velha contra o robô, com níveis fácil, médio e difícil. No difícil ele nunca perde!',
+    'Os dois jogos dão moedas para gastar na loja.',
+  ] },
   { v: '3.2', items: [
     '100 níveis novos, do 201 ao 300, em quatro mundos novos.',
     'Cinco mecânicas novas, uma a cada 20 níveis: gêmeos (220), ampulheta (240), fantasma (260), parede que anda (280) e bloco espelho (300).',
@@ -2613,18 +2759,22 @@ $('introBtn').addEventListener('click', () => { $('introOverlay').hidden = true;
 $('levelsBtn').addEventListener('click', () => { if (!state.drag) { sfx.pick(); showScreen('levels'); } });
 
 /* ---------- Screens ---------- */
-const SCREENS = { loading: 'loadingScreen', home: 'homeScreen', levels: 'levelsScreen', options: 'optionsScreen', shop: 'shopScreen' };
+const SCREENS = { loading: 'loadingScreen', home: 'homeScreen', levels: 'levelsScreen', options: 'optionsScreen', shop: 'shopScreen',
+  more: 'moreScreen', puzzle: 'puzzleScreen', ttt: 'tttScreen' };
 function showScreen(name) {
   state.screen = name;
   for (const [k, id] of Object.entries(SCREENS)) if (k !== 'loading') $(id).hidden = k !== name;
   if (name === 'levels') renderLevels();
   if (name === 'options') renderOptions();
   if (name === 'shop') renderShop();
+  if (name === 'more') renderMore();
+  if (name === 'puzzle') pzOpen();
+  if (name === 'ttt') tttOpen();
   if (name === 'home') {
     $('homeProgress').textContent = state.best > CAMPAIGN ? `Os ${CAMPAIGN} níveis foram vencidos` : `Nível ${state.best} de ${CAMPAIGN}`;
     $('homeEndless').textContent = state.endless > CAMPAIGN + 1 ? `Modo infinito · nível ${state.endless - CAMPAIGN}` : 'Modo infinito';
   }
-  const focus = { levels: 'levelsBack', options: 'optionsBack', shop: 'shopBack' }[name];
+  const focus = { levels: 'levelsBack', options: 'optionsBack', shop: 'shopBack', more: 'moreBack', ttt: 'tttBack' }[name];
   if (focus) $(focus).focus({ preventScroll: true });
 }
 function playLevel(n) {
@@ -2844,6 +2994,594 @@ $('newsOk').addEventListener('click', () => {
   sfx.pick();
 });
 $('optNews').addEventListener('click', () => { sfx.pick(); openNews(true); });
+
+/* ---------- Mais jogos ---------- */
+const GAMES_KEY = 'blocksolve:games';
+const games = {
+  pzBest: 0, pzTheme: 0, pzUnlocked: 1, pzSave: null,
+  ttt: { easy: [0, 0, 0], medium: [0, 0, 0], hard: [0, 0, 0] }, tttLevel: 'easy',
+};
+function loadGames() {
+  try {
+    const g = JSON.parse(localStorage.getItem(GAMES_KEY) || 'null');
+    if (!g || typeof g !== 'object') return;
+    if (Number.isFinite(g.pzBest)) games.pzBest = g.pzBest;
+    if (Number.isInteger(g.pzUnlocked)) games.pzUnlocked = Math.max(1, Math.min(g.pzUnlocked, PZ_THEMES.length));
+    if (Number.isInteger(g.pzTheme)) games.pzTheme = Math.max(0, Math.min(g.pzTheme, games.pzUnlocked - 1));
+    if (g.pzSave && Array.isArray(g.pzSave.grid)) games.pzSave = g.pzSave;
+    if (g.ttt) for (const k of ['easy', 'medium', 'hard']) if (Array.isArray(g.ttt[k]) && g.ttt[k].length === 3) games.ttt[k] = g.ttt[k];
+    if (['easy', 'medium', 'hard'].includes(g.tttLevel)) games.tttLevel = g.tttLevel;
+  } catch (e) { /* storage unavailable */ }
+}
+function saveGames() {
+  try { localStorage.setItem(GAMES_KEY, JSON.stringify(games)); } catch (e) { /* storage unavailable */ }
+}
+
+function renderMore() {
+  $('moreCoins').textContent = state.coins;
+  $('puzzleNote').textContent = `Recorde: ${games.pzBest} · Temas: ${games.pzUnlocked} de ${PZ_THEMES.length}`;
+  const wins = ['easy', 'medium', 'hard'].reduce((n, k) => n + games.ttt[k][0], 0);
+  $('tttNote').textContent = `Vitórias contra o robô: ${wins}`;
+  // little preview of the block game in its current theme
+  const cv = $('puzzleThumb'), c = cv.getContext('2d'), th = PZ_THEMES[games.pzTheme];
+  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, cv.width, cv.height);
+  withCtx(c, () => {
+    c.fillStyle = th.board; c.beginPath(); rr(0, 0, cv.width, cv.height, 30); c.fill();
+    const n = 4, pad = 12, s = (cv.width - pad * 2) / n;
+    const filled = { '0,0': 'red', '1,0': 'red', '0,1': 'red', '3,0': 'yellow', '3,1': 'yellow', '1,3': 'blue', '2,3': 'blue', '3,3': 'blue', '2,2': 'green' };
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const col = filled[x + ',' + y];
+      if (col) pzCell(c, pad + x * s, pad + y * s, s, col, x * 7 + y);
+      else { c.fillStyle = th.cell; c.beginPath(); rr(pad + x * s + 2, pad + y * s + 2, s - 4, s - 4, s * 0.16); c.fill(); }
+    }
+  });
+}
+$('moreBtn').addEventListener('click', () => { audio(); sfx.pick(); showScreen('more'); });
+$('moreBack').addEventListener('click', () => { sfx.pick(); showScreen('home'); });
+$('openPuzzle').addEventListener('click', () => { sfx.pick(); showScreen('puzzle'); });
+$('openTtt').addEventListener('click', () => { sfx.pick(); showScreen('ttt'); });
+$('puzzleBack').addEventListener('click', () => { sfx.pick(); showScreen('more'); });
+$('tttBack').addEventListener('click', () => { sfx.pick(); showScreen('more'); });
+
+/* ---------- Encaixe: place pieces on an 8x8 board, full rows and columns clear ---------- */
+const PZ_N = 8;
+// Each full board clear moves on to the next theme (and unlocks it).
+const PZ_THEMES = [
+  { name: 'Aurora', bg: 'linear-gradient(160deg, #c9f7e9 0%, #b8d8ff 55%, #e3c8ff 100%)', color: '#c4e4f6', ink: '#1f2b52', soft: '#46557f', board: '#26335f', cell: '#34437c', swatch: 'linear-gradient(135deg, #8ee8c8, #9fb8ff, #c9a6ff)' },
+  { name: 'Pôr do sol', bg: 'linear-gradient(170deg, #ffe0a8 0%, #ff9f8f 50%, #c86b98 100%)', color: '#ffb59a', ink: '#3a1838', soft: '#5f2b4f', board: '#4a1f45', cell: '#62305c', swatch: 'linear-gradient(135deg, #ffd27a, #ff7f73, #b25b8e)' },
+  { name: 'Floresta', bg: 'linear-gradient(170deg, #e2f6cf 0%, #94d6a3 55%, #3f8f6b 100%)', color: '#a8dcb0', ink: '#123826', soft: '#24533c', board: '#1d4a36', cell: '#2a604a', swatch: 'linear-gradient(135deg, #c9f0a8, #5fbf85, #2d7556)' },
+  { name: 'Galáxia', bg: 'radial-gradient(circle at 15% 12%, #ffffff 0 1.5px, transparent 2.5px), radial-gradient(circle at 80% 20%, #ffffff 0 1.2px, transparent 2px), radial-gradient(circle at 60% 70%, #ffffff 0 1px, transparent 2px), radial-gradient(circle at 30% 85%, #ffffff 0 1.3px, transparent 2.3px), linear-gradient(170deg, #1b1446 0%, #3b1f6e 55%, #0f2a5a 100%)', color: '#251a55', ink: '#f1eeff', soft: '#c3baf2', board: '#120d33', cell: '#231b55', swatch: 'linear-gradient(135deg, #3b1f6e, #1b1446, #2f5aa8)' },
+  { name: 'Doce', bg: 'linear-gradient(160deg, #ffe3f1 0%, #ffd0e6 45%, #fff1c9 100%)', color: '#ffdcea', ink: '#5a1f45', soft: '#7e3d68', board: '#7a2f63', cell: '#913d77', swatch: 'linear-gradient(135deg, #ffb3d5, #ffd6e8, #ffe9a8)' },
+  { name: 'Oceano', bg: 'linear-gradient(180deg, #dff7ff 0%, #7fd3ee 50%, #1f7fb3 100%)', color: '#8fd8ef', ink: '#0d3550', soft: '#215475', board: '#0f4f73', cell: '#18668f', swatch: 'linear-gradient(135deg, #bff0ff, #45b7e0, #155f8c)' },
+  { name: 'Vulcão', bg: 'linear-gradient(170deg, #ffd08f 0%, #ff7a45 50%, #7a1f2b 100%)', color: '#f08a5a', ink: '#2e0b0e', soft: '#5c1f1c', board: '#3d1418', cell: '#5a2120', swatch: 'linear-gradient(135deg, #ffc46b, #ff5a36, #6e1622)' },
+  { name: 'Gelo', bg: 'linear-gradient(170deg, #ffffff 0%, #dceffc 50%, #a9cdef 100%)', color: '#d4eafa', ink: '#1f3b5c', soft: '#45658a', board: '#2b4f78', cell: '#3a6290', swatch: 'linear-gradient(135deg, #ffffff, #bfe0f7, #7fb0dc)' },
+];
+const PZ_SHAPES = (() => {
+  const base = [
+    [[[0, 0]], 3],
+    [[[0, 0], [1, 0]], 4],
+    [[[0, 0], [1, 0], [2, 0]], 4],
+    [[[0, 0], [1, 0], [2, 0], [3, 0]], 3],
+    [[[0, 0], [1, 0], [2, 0], [3, 0], [4, 0]], 2],
+    [[[0, 0], [1, 0], [0, 1], [1, 1]], 4],
+    [[[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2], [2, 2]], 1],
+    [[[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1]], 2],
+    [[[0, 0], [0, 1], [1, 1]], 4],
+    [[[0, 0], [0, 1], [0, 2], [1, 2]], 3],
+    [[[0, 0], [1, 0], [2, 0], [1, 1]], 3],
+    [[[1, 0], [2, 0], [0, 1], [1, 1]], 2],
+    [[[0, 0], [0, 1], [0, 2], [1, 2], [2, 2]], 1],
+  ];
+  const out = [];
+  for (const [cells, weight] of base) {
+    const seen = new Map();
+    for (const mirror of [false, true]) {
+      let c = cells.map(([x, y]) => [mirror ? -x : x, y]);
+      for (let r = 0; r < 4; r++) {
+        c = c.map(([x, y]) => [-y, x]);
+        const s = makeShape(c);
+        if (!seen.has(s.key)) seen.set(s.key, s);
+      }
+    }
+    for (const s of seen.values()) out.push({ shape: s, w: weight / seen.size });
+  }
+  return out;
+})();
+const PZ_ONE = makeShape([[0, 0]]);
+const pz = {
+  grid: new Array(PZ_N * PZ_N).fill(null), pieces: [null, null, null], score: 0, combo: 0, over: false, started: false, startBest: 0,
+  drag: null, fx: [], pops: [], parts: [], banner: null, seq: 1,
+  w: 0, h: 0, dpr: 1, cs: 30, bx: 0, by: 0, board: null, trayY: 0, trayH: 0, slotW: 0, tcs: 16,
+};
+const pzCanvas = $('pzCanvas'), pzCtx = pzCanvas.getContext('2d');
+
+// One cell drawn in the piece style picked in the shop.
+function pzCell(c, x, y, size, color, id) {
+  const saved = geo.cs;
+  geo.cs = size;
+  withCtx(c, () => {
+    const b = { id, shape: PZ_ONE, color };
+    drawBlockDepth(b, x, y, 0);
+    drawBlockTop(b, x, y, 0);
+  });
+  geo.cs = saved;
+}
+function pzRandomPiece() {
+  const total = PZ_SHAPES.reduce((n, p) => n + p.w, 0);
+  let r = Math.random() * total, pick = PZ_SHAPES[0];
+  for (const p of PZ_SHAPES) { r -= p.w; if (r <= 0) { pick = p; break; } }
+  return { shape: pick.shape, color: COLOR_ORDER[Math.floor(Math.random() * COLOR_ORDER.length)], id: pz.seq++ };
+}
+function pzFits(shape, gx, gy) {
+  for (const [cx, cy] of shape.cells) {
+    const x = gx + cx, y = gy + cy;
+    if (x < 0 || y < 0 || x >= PZ_N || y >= PZ_N || pz.grid[y * PZ_N + x]) return false;
+  }
+  return true;
+}
+function pzFitsAnywhere(p) {
+  for (let y = 0; y <= PZ_N - p.shape.h; y++)
+    for (let x = 0; x <= PZ_N - p.shape.w; x++) if (pzFits(p.shape, x, y)) return true;
+  return false;
+}
+// New hand of three; at least one of them always fits (two when it can manage).
+function pzDeal() {
+  let fallback = null;
+  for (let t = 0; t < 80; t++) {
+    const set = [pzRandomPiece(), pzRandomPiece(), pzRandomPiece()];
+    const fit = set.filter(pzFitsAnywhere).length;
+    if (fit >= 2) { pz.pieces = set; return; }
+    if (fit >= 1 && !fallback) fallback = set;
+  }
+  pz.pieces = fallback || [pzRandomPiece(), pzRandomPiece(), pzRandomPiece()];
+}
+function pzReset() {
+  pz.grid.fill(null);
+  pz.score = 0; pz.combo = 0; pz.over = false; pz.fx = []; pz.pops = []; pz.parts = []; pz.banner = null; pz.drag = null;
+  pz.startBest = games.pzBest;
+  pzDeal();
+  $('pzOverOverlay').hidden = true;
+  pzSave(); pzHud();
+}
+function pzSave() {
+  games.pzSave = pz.over ? null : {
+    grid: pz.grid.map(c => (c ? c.color : 0)),
+    pieces: pz.pieces.map(p => (p ? { k: p.shape.key, c: p.color } : 0)),
+    score: pz.score, combo: pz.combo,
+  };
+  saveGames();
+}
+function pzRestore() {
+  const s = games.pzSave;
+  if (!s || s.grid.length !== PZ_N * PZ_N) return false;
+  pz.grid = s.grid.map(c => (c && COLORS[c] ? { color: c, id: pz.seq++ } : null));
+  pz.pieces = (s.pieces || []).slice(0, 3).map(p => {
+    if (!p) return null;
+    const found = PZ_SHAPES.find(q => q.shape.key === p.k);
+    return found && COLORS[p.c] ? { shape: found.shape, color: p.c, id: pz.seq++ } : null;
+  });
+  while (pz.pieces.length < 3) pz.pieces.push(null);
+  pz.score = s.score | 0; pz.combo = s.combo | 0; pz.over = false;
+  pz.startBest = games.pzBest;
+  if (pz.pieces.every(p => !p)) pzDeal();
+  return true;
+}
+function pzApplyTheme() {
+  const th = PZ_THEMES[games.pzTheme], el = $('puzzleScreen');
+  el.style.setProperty('--page-bg', th.bg);
+  el.style.setProperty('--page-color', th.color);
+  el.style.setProperty('--page-ink', th.ink);
+  el.style.setProperty('--page-ink-soft', th.soft);
+  $('pzThemeName').textContent = th.name;
+  $('pzThemeSwatch').style.background = th.swatch;
+}
+function pzHud() {
+  $('pzScore').textContent = pz.score;
+  $('pzBest').textContent = Math.max(games.pzBest, pz.score);
+}
+function pzPlace(idx, gx, gy) {
+  const p = pz.pieces[idx];
+  for (const [cx, cy] of p.shape.cells) pz.grid[(gy + cy) * PZ_N + gx + cx] = { color: p.color, id: pz.seq++, pop: 0.2 };
+  pz.pieces[idx] = null;
+  let gained = p.shape.cells.length;
+  const rows = [], cols = [];
+  for (let y = 0; y < PZ_N; y++) { let full = true; for (let x = 0; x < PZ_N; x++) if (!pz.grid[y * PZ_N + x]) { full = false; break; } if (full) rows.push(y); }
+  for (let x = 0; x < PZ_N; x++) { let full = true; for (let y = 0; y < PZ_N; y++) if (!pz.grid[y * PZ_N + x]) { full = false; break; } if (full) cols.push(x); }
+  const lines = rows.length + cols.length;
+  const mx = pz.bx + (gx + p.shape.w / 2) * pz.cs, my = pz.by + (gy + p.shape.h / 2) * pz.cs;
+  if (lines) {
+    pz.combo++;
+    const pts = Math.round(10 * lines * lines * (1 + 0.5 * (pz.combo - 1)));
+    gained += pts;
+    const clear = new Set();
+    for (const y of rows) for (let x = 0; x < PZ_N; x++) clear.add(y * PZ_N + x);
+    for (const x of cols) for (let y = 0; y < PZ_N; y++) clear.add(y * PZ_N + x);
+    for (const i of clear) {
+      const cell = pz.grid[i], x = i % PZ_N, y = Math.floor(i / PZ_N);
+      const delay = Math.min(Math.abs(x - (gx + p.shape.w / 2)), Math.abs(y - (gy + p.shape.h / 2))) * 0.025;
+      pz.fx.push({ x, y, color: cell.color, id: cell.id, t: -delay });
+      pz.grid[i] = null;
+      const col = COLORS[cell.color];
+      for (let k = 0; k < (reduceMotion ? 1 : 3); k++) {
+        const a = Math.random() * Math.PI * 2, v = pz.cs * (2 + Math.random() * 3);
+        pz.parts.push({ x: pz.bx + (x + 0.5) * pz.cs, y: pz.by + (y + 0.5) * pz.cs, vx: Math.cos(a) * v, vy: Math.sin(a) * v - pz.cs * 2, s: pz.cs * (0.1 + Math.random() * 0.12), c: Math.random() < 0.5 ? col.base : col.light, t: 0 });
+      }
+    }
+    pz.pops.push({ text: `+${pts}`, x: mx, y: my, t: 0 });
+    if (pz.combo > 1) pz.pops.push({ text: `Combo x${pz.combo}`, x: mx, y: my + pz.cs * 0.75, t: 0, small: true });
+    sfx.exit(); buzz(lines > 1 ? [20, 30, 20] : 20);
+    if (pz.grid.every(c => !c)) { gained += 300; pzFullClear(); }
+  } else {
+    pz.combo = 0;
+    sfx.step();
+  }
+  pz.score += gained;
+  if (pz.score > games.pzBest) games.pzBest = pz.score;
+  if (pz.pieces.every(q => !q)) pzDeal();
+  if (!pz.pieces.some(q => q && pzFitsAnywhere(q))) { pz.over = true; setTimeout(pzGameOver, 800); }
+  pzHud(); pzSave();
+}
+// Whole board empty: bonus, celebration and the next background theme.
+function pzFullClear() {
+  if (games.pzUnlocked < PZ_THEMES.length) { games.pzTheme = games.pzUnlocked; games.pzUnlocked++; }
+  else games.pzTheme = (games.pzTheme + 1) % PZ_THEMES.length;
+  pzApplyTheme();
+  pz.banner = { t: 0, text: 'Tudo limpo!', sub: `+300 · tema ${PZ_THEMES[games.pzTheme].name}` };
+  sfx.win(); buzz([30, 40, 30, 40, 60]);
+  const palette = Object.values(COLORS).flatMap(c => [c.base, c.light]);
+  for (let k = 0; k < (reduceMotion ? 12 : 60); k++) {
+    const a = Math.random() * Math.PI * 2, v = pz.cs * (3 + Math.random() * 5);
+    pz.parts.push({ x: pz.bx + PZ_N * pz.cs / 2, y: pz.by + PZ_N * pz.cs / 2, vx: Math.cos(a) * v, vy: Math.sin(a) * v - pz.cs * 3, s: pz.cs * (0.1 + Math.random() * 0.15), c: palette[Math.floor(Math.random() * palette.length)], t: 0 });
+  }
+}
+function pzGameOver() {
+  if (!pz.over || state.screen !== 'puzzle') return;
+  const reward = Math.floor(pz.score / 100);
+  state.coins += reward; save();
+  const record = pz.score > pz.startBest && pz.score > 0;
+  $('pzOverTitle').textContent = record ? 'Novo recorde!' : 'Sem espaço!';
+  $('pzOverSummary').textContent = `${pz.score} pontos · recorde ${games.pzBest}`;
+  $('pzOverReward').textContent = `+${reward}`;
+  $('pzOverOverlay').hidden = false;
+  games.pzSave = null; saveGames();
+  if (record) sfx.win(); else sfx.deny();
+  $('pzAgain').focus({ preventScroll: true });
+}
+function pzLayout() {
+  const r = $('pzStage').getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  pz.dpr = Math.min(window.devicePixelRatio || 1, 3);
+  pz.w = r.width; pz.h = r.height;
+  pzCanvas.width = Math.round(r.width * pz.dpr); pzCanvas.height = Math.round(r.height * pz.dpr);
+  const B = Math.max(80, Math.min(r.width - 4, (r.height - 8) * 0.7)), pad = B * 0.03;
+  // board and the hand of pieces sit together, centred in the space
+  const trayH = Math.max(40, Math.min(r.height - B - 18, B * 0.42));
+  const top = Math.max(4, (r.height - (B + 12 + trayH)) / 2);
+  pz.board = { x: (r.width - B) / 2, y: top, s: B };
+  pz.cs = (B - pad * 2) / PZ_N;
+  pz.bx = pz.board.x + pad; pz.by = pz.board.y + pad;
+  pz.trayY = pz.board.y + B + 12; pz.trayH = trayH;
+  pz.slotW = r.width / 3;
+  pz.tcs = Math.max(8, Math.min(pz.cs * 0.62, pz.slotW / 5.4, pz.trayH / 5.4));
+}
+function pzPos(e) { const r = pzCanvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+// The piece floats a little above the finger so it stays visible while dragging.
+function pzAim() {
+  const d = pz.drag, s = d.piece.shape;
+  d.left = d.px - s.w * pz.cs / 2;
+  d.top = d.py - s.h * pz.cs - pz.cs * 0.9;
+  d.gx = Math.round((d.left - pz.bx) / pz.cs);
+  d.gy = Math.round((d.top - pz.by) / pz.cs);
+  d.valid = pzFits(s, d.gx, d.gy);
+}
+pzCanvas.addEventListener('pointerdown', e => {
+  if (pz.over || pz.drag) return;
+  const p = pzPos(e);
+  if (p.y < pz.trayY - 8 || p.y > pz.trayY + pz.trayH + 30) return;
+  const i = Math.max(0, Math.min(2, Math.floor(p.x / pz.slotW)));
+  const piece = pz.pieces[i];
+  if (!piece) return;
+  e.preventDefault();
+  audio();
+  try { pzCanvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  pz.drag = { i, piece, pid: e.pointerId, px: p.x, py: p.y };
+  pzAim();
+  sfx.pick();
+});
+pzCanvas.addEventListener('pointermove', e => {
+  const d = pz.drag;
+  if (!d || e.pointerId !== d.pid) return;
+  const p = pzPos(e);
+  const was = d.valid && d.gx + ',' + d.gy;
+  d.px = p.x; d.py = p.y;
+  pzAim();
+  if (d.valid && d.gx + ',' + d.gy !== was) sfx.step();
+});
+function pzDrop(e) {
+  const d = pz.drag;
+  if (!d || e.pointerId !== d.pid) return;
+  try { pzCanvas.releasePointerCapture(d.pid); } catch (err) { /* ignore */ }
+  pz.drag = null;
+  if (d.valid) pzPlace(d.i, d.gx, d.gy); else sfx.bump();
+}
+pzCanvas.addEventListener('pointerup', pzDrop);
+pzCanvas.addEventListener('pointercancel', e => { if (pz.drag && e.pointerId === pz.drag.pid) pz.drag = null; });
+new ResizeObserver(() => { if (state.screen === 'puzzle') pzLayout(); }).observe($('pzStage'));
+
+$('pzTheme').addEventListener('click', () => {
+  if (games.pzUnlocked < 2) { sfx.deny(); toast('Limpe o tabuleiro inteiro para ganhar temas novos.'); return; }
+  games.pzTheme = (games.pzTheme + 1) % games.pzUnlocked;
+  pzApplyTheme(); saveGames(); sfx.swap();
+});
+$('puzzleRestart').addEventListener('click', () => { pzReset(); sfx.pick(); toast('Partida nova.'); });
+$('pzAgain').addEventListener('click', () => { pzReset(); sfx.pick(); });
+$('pzOverBack').addEventListener('click', () => { $('pzOverOverlay').hidden = true; sfx.pick(); showScreen('more'); });
+
+function pzOpen() {
+  if (!pz.started) { if (!pzRestore()) pzReset(); pz.started = true; }
+  pzApplyTheme(); pzHud();
+  requestAnimationFrame(() => {
+    pzLayout();
+    if (!pz.over && !pz.pieces.some(q => q && pzFitsAnywhere(q))) { pz.over = true; setTimeout(pzGameOver, 500); }
+  });
+}
+function pzUpdate(dt) {
+  for (const f of pz.fx) f.t += dt;
+  pz.fx = pz.fx.filter(f => f.t < 0.35);
+  for (const p of pz.pops) p.t += dt;
+  pz.pops = pz.pops.filter(p => p.t < 1);
+  if (pz.banner) { pz.banner.t += dt; if (pz.banner.t > 2) pz.banner = null; }
+  for (const c of pz.grid) if (c && c.pop) c.pop = Math.max(0, c.pop - dt);
+  for (const p of pz.parts) { p.t += dt; p.vy += pz.cs * 14 * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
+  pz.parts = pz.parts.filter(p => p.t < 1.1 && p.y < pz.h + 40);
+}
+function pzDraw(time) {
+  if (!pz.board) return;
+  const c = pzCtx, th = PZ_THEMES[games.pzTheme], cs = pz.cs;
+  c.setTransform(pz.dpr, 0, 0, pz.dpr, 0, 0);
+  c.clearRect(0, 0, pz.w, pz.h);
+  withCtx(c, () => {
+    const b = pz.board;
+    c.fillStyle = 'rgba(0,0,0,.2)'; c.beginPath(); rr(b.x, b.y + 8, b.s, b.s, 22); c.fill();
+    c.fillStyle = th.board; c.beginPath(); rr(b.x, b.y, b.s, b.s, 22); c.fill();
+    for (let y = 0; y < PZ_N; y++) for (let x = 0; x < PZ_N; x++) {
+      c.fillStyle = th.cell; c.beginPath(); rr(pz.bx + x * cs + 2, pz.by + y * cs + 2, cs - 4, cs - 4, cs * 0.16); c.fill();
+    }
+    // where the dragged piece would land, and which lines it would complete
+    const d = pz.drag;
+    let lit = null;
+    if (d && d.valid) {
+      const g = pz.grid.slice();
+      for (const [cx, cy] of d.piece.shape.cells) g[(d.gy + cy) * PZ_N + d.gx + cx] = true;
+      lit = new Set();
+      for (let y = 0; y < PZ_N; y++) if ([...Array(PZ_N).keys()].every(x => g[y * PZ_N + x])) for (let x = 0; x < PZ_N; x++) lit.add(y * PZ_N + x);
+      for (let x = 0; x < PZ_N; x++) if ([...Array(PZ_N).keys()].every(y => g[y * PZ_N + x])) for (let y = 0; y < PZ_N; y++) lit.add(y * PZ_N + x);
+      c.save(); c.globalAlpha = 0.38;
+      for (const [cx, cy] of d.piece.shape.cells) pzCell(c, pz.bx + (d.gx + cx) * cs, pz.by + (d.gy + cy) * cs, cs, d.piece.color, d.piece.id);
+      c.restore();
+    }
+    for (let i = 0; i < pz.grid.length; i++) {
+      const cell = pz.grid[i];
+      if (!cell) continue;
+      const x = pz.bx + (i % PZ_N) * cs, y = pz.by + Math.floor(i / PZ_N) * cs;
+      if (cell.pop) {
+        const k = 1 + cell.pop * 0.6;
+        c.save(); c.translate(x + cs / 2, y + cs / 2); c.scale(k, k); c.translate(-x - cs / 2, -y - cs / 2);
+        pzCell(c, x, y, cs, cell.color, cell.id);
+        c.restore();
+      } else pzCell(c, x, y, cs, cell.color, cell.id);
+      if (lit && lit.has(i)) { c.fillStyle = `rgba(255,255,255,${0.25 + 0.15 * Math.sin(time * 10)})`; c.beginPath(); rr(x + 2, y + 2, cs - 4, cs - 4, cs * 0.18); c.fill(); }
+    }
+    if (lit && d) for (const i of lit) if (!pz.grid[i]) {
+      const x = pz.bx + (i % PZ_N) * cs, y = pz.by + Math.floor(i / PZ_N) * cs;
+      c.fillStyle = 'rgba(255,255,255,.22)'; c.beginPath(); rr(x + 2, y + 2, cs - 4, cs - 4, cs * 0.18); c.fill();
+    }
+    // cleared cells shrink away
+    for (const f of pz.fx) {
+      if (f.t < 0) { pzCell(c, pz.bx + f.x * cs, pz.by + f.y * cs, cs, f.color, f.id); continue; }
+      const k = 1 - f.t / 0.35, x = pz.bx + f.x * cs, y = pz.by + f.y * cs;
+      c.save(); c.globalAlpha = k; c.translate(x + cs / 2, y + cs / 2); c.scale(0.4 + 0.6 * k, 0.4 + 0.6 * k); c.translate(-x - cs / 2, -y - cs / 2);
+      pzCell(c, x, y, cs, f.color, f.id);
+      c.fillStyle = `rgba(255,255,255,${0.6 * k})`; c.beginPath(); rr(x + 2, y + 2, cs - 4, cs - 4, cs * 0.18); c.fill();
+      c.restore();
+    }
+    // the hand of three pieces
+    for (let i = 0; i < 3; i++) {
+      const p = pz.pieces[i];
+      if (!p || (d && d.i === i)) continue;
+      const t = pz.tcs, w = p.shape.w * t, h = p.shape.h * t;
+      const ox = pz.slotW * (i + 0.5) - w / 2, oy = pz.trayY + pz.trayH / 2 - h / 2;
+      const fits = pzFitsAnywhere(p);
+      c.save(); if (!fits) c.globalAlpha = 0.32;
+      for (const [cx, cy] of p.shape.cells) pzCell(c, ox + cx * t, oy + cy * t, t, p.color, p.id);
+      c.restore();
+    }
+    if (d) {
+      c.save();
+      c.shadowColor = 'rgba(0,0,0,.35)'; c.shadowBlur = cs * 0.4; c.shadowOffsetY = cs * 0.15;
+      for (const [cx, cy] of d.piece.shape.cells) pzCell(c, d.left + cx * cs, d.top + cy * cs, cs, d.piece.color, d.piece.id);
+      c.restore();
+    }
+    for (const p of pz.parts) {
+      c.save(); c.globalAlpha = Math.max(0, 1 - p.t / 1.1); c.fillStyle = p.c;
+      c.translate(p.x, p.y); c.rotate(p.t * 8); c.fillRect(-p.s / 2, -p.s / 2, p.s, p.s); c.restore();
+    }
+    for (const p of pz.pops) {
+      c.save();
+      c.globalAlpha = Math.max(0, 1 - p.t);
+      c.font = `700 ${Math.round(cs * (p.small ? 0.45 : 0.7))}px Fredoka, Nunito, system-ui, sans-serif`;
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.lineWidth = cs * 0.12; c.strokeStyle = 'rgba(31,43,82,.75)'; c.fillStyle = p.small ? '#ffe28a' : '#ffffff';
+      const px = Math.max(cs * 1.6, Math.min(pz.w - cs * 1.6, p.x));
+      c.strokeText(p.text, px, p.y - p.t * cs * 1.2); c.fillText(p.text, px, p.y - p.t * cs * 1.2);
+      c.restore();
+    }
+    if (pz.banner) {
+      const t = pz.banner.t, k = Math.min(1, t / 0.25), fade = t > 1.6 ? 1 - (t - 1.6) / 0.4 : 1;
+      const x = pz.board.x + pz.board.s / 2, y = pz.board.y + pz.board.s / 2;
+      c.save(); c.globalAlpha = Math.max(0, fade);
+      c.translate(x, y); c.scale(0.6 + 0.4 * k + 0.05 * Math.sin(t * 8), 0.6 + 0.4 * k + 0.05 * Math.sin(t * 8));
+      c.font = `700 ${Math.round(cs * 1.1)}px Fredoka, Nunito, system-ui, sans-serif`;
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.lineWidth = cs * 0.2; c.strokeStyle = '#1f2b52'; c.fillStyle = '#ffe28a';
+      c.strokeText(pz.banner.text, 0, -cs * 0.3); c.fillText(pz.banner.text, 0, -cs * 0.3);
+      c.font = `700 ${Math.round(cs * 0.45)}px Fredoka, Nunito, system-ui, sans-serif`;
+      c.lineWidth = cs * 0.12; c.fillStyle = '#ffffff';
+      c.strokeText(pz.banner.sub, 0, cs * 0.55); c.fillText(pz.banner.sub, 0, cs * 0.55);
+      c.restore();
+    }
+  });
+}
+
+/* ---------- Jogo da velha contra o robô ---------- */
+const TTT_LINES = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
+const ttt = { board: Array(9).fill(''), turn: 'X', starter: 'O', over: false, busy: false, timer: 0 };
+function tttWinner(b) {
+  for (const line of TTT_LINES) {
+    const [a, c, d] = line;
+    if (b[a] && b[a] === b[c] && b[a] === b[d]) return { who: b[a], line };
+  }
+  return b.every(Boolean) ? { who: 'draw', line: [] } : null;
+}
+// Perfect play for the robot (O): win soon, lose late.
+function tttMinimax(b, turn, depth) {
+  const w = tttWinner(b);
+  if (w) return w.who === 'O' ? 10 - depth : w.who === 'X' ? depth - 10 : 0;
+  let best = turn === 'O' ? -99 : 99;
+  for (let i = 0; i < 9; i++) {
+    if (b[i]) continue;
+    b[i] = turn;
+    const v = tttMinimax(b, turn === 'O' ? 'X' : 'O', depth + 1);
+    b[i] = '';
+    best = turn === 'O' ? Math.max(best, v) : Math.min(best, v);
+  }
+  return best;
+}
+function tttBestMove(b) {
+  let best = -99, moves = [];
+  for (const i of [4, 0, 2, 6, 8, 1, 3, 5, 7]) {
+    if (b[i]) continue;
+    b[i] = 'O';
+    const v = tttMinimax(b, 'X', 1);
+    b[i] = '';
+    if (v > best) { best = v; moves = [i]; } else if (v === best) moves.push(i);
+  }
+  return moves[0];
+}
+function tttRobotMove(b, level, rnd = Math.random) {
+  const empty = b.map((v, i) => (v ? -1 : i)).filter(i => i >= 0);
+  const finish = who => {
+    for (const i of empty) { const t = b.slice(); t[i] = who; const w = tttWinner(t); if (w && w.who === who) return i; }
+    return -1;
+  };
+  const any = () => empty[Math.floor(rnd() * empty.length)];
+  if (level === 'hard') return tttBestMove(b.slice());
+  if (level === 'medium') {
+    let i = finish('O'); if (i >= 0 && rnd() < 0.9) return i;
+    i = finish('X'); if (i >= 0 && rnd() < 0.65) return i;
+    if (!b[4] && rnd() < 0.5) return 4;
+    return any();
+  }
+  // easy: mostly random, only sometimes notices it can win
+  const i = finish('O');
+  if (i >= 0 && rnd() < 0.25) return i;
+  return any();
+}
+const TTT_X = '<svg viewBox="0 0 100 100" aria-hidden="true"><path class="mark-x" pathLength="100" d="M24 24 L76 76 M76 24 L24 76"/></svg>';
+const TTT_O = '<svg viewBox="0 0 100 100" aria-hidden="true"><circle class="mark-o" pathLength="100" cx="50" cy="50" r="28"/></svg>';
+const tttCells = [];
+for (let i = 0; i < 9; i++) {
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'ttt-cell';
+  btn.setAttribute('aria-label', `Casa ${i + 1}, vazia`);
+  btn.addEventListener('click', () => tttPlay(i));
+  $('tttBoard').appendChild(btn);
+  tttCells.push(btn);
+}
+function tttRender(winLine) {
+  ttt.board.forEach((v, i) => {
+    const btn = tttCells[i];
+    if (btn.dataset.v !== v) { btn.innerHTML = v === 'X' ? TTT_X : v === 'O' ? TTT_O : ''; btn.dataset.v = v; }
+    btn.classList.toggle('win', !!winLine && winLine.includes(i));
+    btn.disabled = !!v || ttt.over || ttt.busy || ttt.turn !== 'X';
+    btn.setAttribute('aria-label', `Casa ${i + 1}, ${v === 'X' ? 'sua' : v === 'O' ? 'do robô' : 'vazia'}`);
+  });
+  const sc = games.ttt[games.tttLevel];
+  $('tttWins').textContent = sc[0]; $('tttDraws').textContent = sc[1]; $('tttLosses').textContent = sc[2];
+  for (const tab of document.querySelectorAll('.tabs.three .tab')) tab.setAttribute('aria-selected', String(tab.dataset.level === games.tttLevel));
+}
+const TTT_REWARD = { easy: 2, medium: 5, hard: 10 };
+function tttCheck() {
+  const w = tttWinner(ttt.board);
+  if (!w) return false;
+  ttt.over = true;
+  const sc = games.ttt[games.tttLevel];
+  if (w.who === 'X') {
+    sc[0]++;
+    const reward = TTT_REWARD[games.tttLevel];
+    state.coins += reward; save();
+    $('tttStatus').textContent = `Você venceu! +${reward} moedas`;
+    sfx.win(); buzz([20, 40, 30]);
+  } else if (w.who === 'O') {
+    sc[2]++;
+    $('tttStatus').textContent = 'O robô venceu. Tente de novo!';
+    sfx.deny();
+  } else {
+    sc[1]++;
+    const reward = games.tttLevel === 'hard' ? 3 : 0;
+    if (reward) { state.coins += reward; save(); }
+    $('tttStatus').textContent = reward ? `Empate! +${reward} moedas contra o difícil` : 'Empate!';
+    sfx.pick();
+  }
+  saveGames();
+  tttRender(w.line);
+  return true;
+}
+function tttRobotTurn() {
+  ttt.busy = true;
+  $('tttStatus').textContent = 'O robô está pensando…';
+  tttRender();
+  clearTimeout(ttt.timer);
+  ttt.timer = setTimeout(() => {
+    if (state.screen !== 'ttt' || ttt.over) { ttt.busy = false; return; }
+    ttt.board[tttRobotMove(ttt.board, games.tttLevel)] = 'O';
+    ttt.busy = false; ttt.turn = 'X';
+    tone(420, 0.08, 'triangle', 0.1);
+    if (!tttCheck()) { $('tttStatus').textContent = 'Sua vez.'; tttRender(); }
+  }, 480);
+}
+function tttPlay(i) {
+  if (ttt.over || ttt.busy || ttt.turn !== 'X' || ttt.board[i]) return;
+  audio();
+  ttt.board[i] = 'X';
+  tone(660, 0.08, 'triangle', 0.12);
+  if (tttCheck()) return;
+  ttt.turn = 'O';
+  tttRobotTurn();
+}
+// Who starts alternates every game.
+function tttNewGame(resetStarter) {
+  clearTimeout(ttt.timer);
+  ttt.board = Array(9).fill(''); ttt.over = false; ttt.busy = false;
+  ttt.starter = resetStarter ? 'X' : (ttt.starter === 'X' ? 'O' : 'X');
+  ttt.turn = ttt.starter;
+  $('tttStatus').textContent = ttt.turn === 'X' ? 'Sua vez: você é o ✕.' : 'O robô começa esta.';
+  tttRender();
+  if (ttt.turn === 'O') tttRobotTurn();
+}
+for (const tab of document.querySelectorAll('.tabs.three .tab')) {
+  tab.addEventListener('click', () => {
+    games.tttLevel = tab.dataset.level; saveGames(); sfx.pick();
+    tttNewGame(true);
+  });
+}
+$('tttNew').addEventListener('click', () => { sfx.pick(); tttNewGame(false); });
+function tttOpen() {
+  if (!ttt.board.some(Boolean) && !ttt.busy) tttNewGame(true);
+  else tttRender(ttt.over ? (tttWinner(ttt.board) || {}).line : null);
+}
+loadGames();
+window.__minigames = { pz, games, pzReset, pzPlace, pzFits, ttt, tttRobotMove, tttWinner, PZ_THEMES };
 
 /* ---------- Loading ---------- */
 function runLoading(done) {
@@ -4051,7 +4789,8 @@ let last = 0;
 function frame(ts) {
   const dt = Math.min(0.033, last ? (ts - last) / 1000 : 0.016);
   last = ts;
-  if (state.level) { update(dt); draw(ts / 1000); }
+  if (state.screen === 'puzzle') { pzUpdate(dt); pzDraw(ts / 1000); }
+  else if (state.level) { update(dt); draw(ts / 1000); }
   requestAnimationFrame(frame);
 }
 
@@ -4082,6 +4821,9 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 // Android back button (called by the APK wrapper). Returns true when the game handled it.
 window.blocksolveBack = () => {
   if (!$('newsOverlay').hidden) { $('newsOk').click(); return true; }
+  if (!$('pzOverOverlay').hidden) { $('pzOverOverlay').hidden = true; showScreen('more'); return true; }
+  if (state.screen === 'puzzle' || state.screen === 'ttt') { showScreen('more'); return true; }
+  if (state.screen === 'more') { showScreen('home'); return true; }
   if (!$('introOverlay').hidden) { $('introBtn').click(); return true; }
   if (!$('winOverlay').hidden) { $('winOverlay').hidden = true; showScreen('levels'); return true; }
   if (!$('endOverlay').hidden) { $('endOverlay').hidden = true; showScreen('home'); return true; }

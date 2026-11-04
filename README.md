@@ -45,6 +45,16 @@ A partir da bomba, cada mecânica nova estreia exatamente 20 níveis depois da a
 
 Para jogar no navegador, abra `index.html`. Não há dependências nem etapa de build.
 
+## Mais jogos
+
+Na tela inicial, o botão **Mais jogos** abre:
+
+- **Encaixe:** arraste as peças para um tabuleiro 8×8; linhas e colunas completas somem. Cada vez que o tabuleiro fica
+  totalmente vazio, o tema de fundo muda (8 temas para colecionar; o botão Tema troca entre os já ganhos). As peças usam o
+  estilo escolhido na loja, o recorde e a partida em andamento ficam salvos, e cada 100 pontos vira 1 moeda.
+- **Jogo da velha:** você contra o robô, em fácil, médio ou difícil. No difícil ele joga perfeito e nunca perde
+  (verificado em todas as partidas possíveis). Vitórias dão moedas.
+
 ## Android (APK)
 
 O APK pronto fica em [`dist/BlockSolve.apk`](dist/BlockSolve.apk). Ele roda o mesmo jogo dentro de um WebView,
