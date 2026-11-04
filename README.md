@@ -25,15 +25,20 @@ Esvazie o tabuleiro para passar de nível.
 | Bloco acorrentado | 160 | Preso por correntes até sair o bloco que carrega a chave prateada. |
 | Bloco de duas cores | 180 | Sai pela parede de qualquer uma das duas cores. |
 | Portão | 200 | Abre e fecha a cada jogada. |
+| Gêmeos | 220 | Dois blocos da mesma cor ligados por um laço: quando um sai, o outro sai junto. |
+| Ampulheta | 240 | Bloco de areia com contador; quando zera, ele se desfaz sozinho. |
+| Fantasma | 260 | Atravessa os outros blocos, mas precisa parar numa casa livre. |
+| Parede que anda | 280 | Muda de lugar a cada jogada; o contorno tracejado mostra o próximo lugar. |
+| Bloco espelho | 300 | Anda para o lado contrário do dedo. |
 
 A partir da bomba, cada mecânica nova estreia exatamente 20 níveis depois da anterior.
 
 ## Conteúdo
 
-- Tela de carregamento, tela inicial (Jogar / Loja / Opções) e seleção de níveis em 8 mundos, tela de novidades a cada atualização e dedicatória para a família.
-- **200 níveis** de campanha com dificuldade crescente. Ao vencer o último aparece a mensagem de fim de jogo.
+- Tela de carregamento, tela inicial (Jogar / Loja / Opções) e seleção de níveis em 12 mundos, tela de novidades a cada atualização e dedicatória para a família.
+- **300 níveis** de campanha com dificuldade crescente. Ao vencer o último aparece a mensagem de fim de jogo.
 - **Modo infinito** liberado desde o começo: começa fácil e vai trazendo todas as mecânicas.
-- Todo nível tem solução garantida pelo gerador, conferida reproduzindo a solução planejada de cada um; os 200 também foram jogados por um robô arrastando com o mouse, tanto seguindo a dica quanto sem estratégia (sempre tirando o bloco mais fácil).
+- Todo nível tem solução garantida pelo gerador, conferida reproduzindo a solução planejada de cada um; os 300 também foram jogados por um robô arrastando com o mouse, tanto seguindo a dica quanto sem estratégia (sempre tirando o bloco mais fácil).
 - **Loja:** fundos Padrão, Colorido, Desenho, Noite e Oceano; peças Padrão, Colorido, Desenho, Neon e Pixel.
 - Opções: som, vibração e apagar progresso. Progresso, moedas e compras ficam salvos no aparelho.
 - Botões no jogo: **Desfazer**, **Reiniciar** e **Dica** (a primeira de cada nível é grátis, depois 10 moedas; cada nível vale 20). A dica segue a solução planejada do nível enquanto ela ainda vale.
