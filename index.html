@@ -195,6 +195,43 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 }
 .dedication svg { width: 22px; height: 22px; fill: #ee5f8f; flex: none; animation: beat 1.6s ease-in-out infinite; }
 @keyframes beat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.18); } 30% { transform: scale(1); } }
+/* special 3.5 message (remove next update) */
+.farewell { background: rgba(255, 120, 160, .35); overflow: hidden; }
+.farewell-card { position: relative; z-index: 1; gap: 8px; }
+.farewell-card .plane { width: 74px; height: 74px; animation: fly 2.4s ease-in-out infinite; }
+.farewell-card h2 { font-size: 2.1rem; color: #d6336c; }
+.farewell-body { font-weight: 800; font-size: 1.15rem; color: var(--ink); text-wrap: balance; }
+.farewell-big {
+  font-family: var(--font-display); font-weight: 700; font-size: 1.8rem; letter-spacing: .04em;
+  background: linear-gradient(90deg, #ee4d4d, #f5892c, #e0a800, #2fbf71, #2f86e8, #8a5cf0);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.cta.love {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: #ee5f8f; color: #ffffff; box-shadow: 0 5px 0 #b8336a; font-size: 1.5rem;
+}
+.cta.love:active { box-shadow: 0 1px 0 #b8336a; }
+.cta.love svg { width: 26px; height: 26px; animation: beat 1.2s ease-in-out infinite; }
+.hearts { position: absolute; inset: 0; pointer-events: none; }
+.hearts i {
+  position: absolute; bottom: -40px; width: 22px; height: 22px; background: #ff6f9c; opacity: .8;
+  transform: rotate(45deg); animation: rise-heart 6s linear infinite;
+}
+.hearts i::before, .hearts i::after { content: ""; position: absolute; width: 22px; height: 22px; border-radius: 50%; background: inherit; }
+.hearts i::before { left: -11px; } .hearts i::after { top: -11px; }
+.hearts i:nth-child(1) { left: 6%; animation-delay: 0s; }
+.hearts i:nth-child(2) { left: 18%; animation-delay: 1.2s; background: #ff9ec0; }
+.hearts i:nth-child(3) { left: 30%; animation-delay: 2.6s; }
+.hearts i:nth-child(4) { left: 42%; animation-delay: .6s; background: #ffc2d6; }
+.hearts i:nth-child(5) { left: 54%; animation-delay: 3.4s; }
+.hearts i:nth-child(6) { left: 66%; animation-delay: 1.8s; background: #ff9ec0; }
+.hearts i:nth-child(7) { left: 78%; animation-delay: 4.2s; }
+.hearts i:nth-child(8) { left: 90%; animation-delay: 2.2s; background: #ffc2d6; }
+.hearts i:nth-child(9) { left: 12%; animation-delay: 4.8s; }
+.hearts i:nth-child(10) { left: 84%; animation-delay: 5.4s; background: #ff9ec0; }
+@keyframes rise-heart { from { transform: translateY(0) rotate(45deg) scale(.7); opacity: .9; } to { transform: translateY(-115vh) rotate(45deg) scale(1.1); opacity: 0; } }
+@keyframes fly { 0%, 100% { transform: translate(0, 0) rotate(-4deg); } 50% { transform: translate(6px, -8px) rotate(4deg); } }
+@media (prefers-reduced-motion: reduce) { .hearts { display: none; } .farewell-card .plane, .cta.love svg { animation: none; } }
 .news-card { max-height: min(86vh, 640px); }
 .news-card h2 { font-size: 1.7rem; }
 .news-list { align-self: stretch; overflow-y: auto; text-align: left; display: flex; flex-direction: column; gap: 14px; padding-right: 4px; }
@@ -597,6 +634,26 @@ body[data-bg="sketch"] {
     <p class="reward"><span class="coin"></span><span id="mgOverReward">+0</span></p>
     <button class="cta" id="mgAgain" type="button">Jogar de novo</button>
     <button class="cta quiet" id="mgOverBack" type="button">Voltar</button>
+  </div>
+</div>
+
+<!-- Special message for version 3.5 only. Remove it (markup, CSS and openFarewell) in the next update. -->
+<div class="overlay farewell" id="farewellOverlay" hidden>
+  <div class="hearts" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="card farewell-card" role="dialog" aria-modal="true" aria-labelledby="farewellTitle">
+    <svg class="plane" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M58 8 6 30l18 6 4 18 9-12 13 9z" fill="#4aa8ff"/>
+      <path d="M58 8 24 36l4 18 4-11z" fill="#2a78c8"/>
+      <path d="M58 8 24 36l26 15z" fill="#7cc4ff"/>
+    </svg>
+    <span class="eyebrow">Mensagem especial</span>
+    <h2 id="farewellTitle">BOA VIAGEM, IRMÃ!</h2>
+    <p class="farewell-body">Te amo muuuuuito e que dê tudo certo!!!</p>
+    <p class="farewell-big">BOA VIAGEM</p>
+    <button class="cta love" id="farewellOk" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.3C.9 8.3 3 4.5 6.7 4.5c2.1 0 3.6 1.1 4.4 2.6.8-1.5 2.3-2.6 4.4-2.6 3.7 0 5.8 3.8 4.3 7.2C19.5 16.4 12 21 12 21z" fill="currentColor"/></svg>
+      TE AMO
+    </button>
   </div>
 </div>
 
@@ -1889,8 +1946,9 @@ const WORLDS = [
   { from: 276, name: 'Espelho' },
 ];
 const COIN_CELL = 5;
-const APP_VERSION = '3.4';
+const APP_VERSION = '3.5';
 const CHANGELOG = [
+  { v: '3.5', items: ['Uma mensagem especial de boa viagem para a irmã.'] },
   { v: '3.4', items: [
     'Jogo novo em Mais jogos: Junta-Junta. Solte bolinhas na caixa; duas iguais se juntam e crescem (rosa + rosa = verde...) até virar um planeta.',
     'Cada bolinha tem carinha própria e reage: cara feia quando cai em cima de outra diferente, susto ao cair, suor perto da borda, soninho quando fica parada e festa quando se junta.',
@@ -3019,6 +3077,19 @@ function shopAction(kind, item) {
 }
 $('tabBg').addEventListener('click', () => { shopTab = 'bg'; sfx.pick(); renderShop(); });
 $('tabPiece').addEventListener('click', () => { shopTab = 'piece'; sfx.pick(); renderShop(); });
+
+/* ---------- Special 3.5 message (remove in the next update) ---------- */
+function openFarewell() {
+  $('farewellOverlay').hidden = false;
+  $('farewellOk').focus({ preventScroll: true });
+}
+$('farewellOk').addEventListener('click', () => {
+  audio();
+  [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.2, 'triangle', 0.12, null, i * 0.08));
+  buzz([30, 40, 30]);
+  $('farewellOverlay').hidden = true;
+  state.lastVersion = APP_VERSION; save();
+});
 
 /* ---------- What's new ---------- */
 function openNews(all) {
@@ -5337,7 +5408,9 @@ function start(data) {
   }
   runLoading(() => {
     showScreen(data && SCREENS[data.screen] && data.screen !== 'loading' ? data.screen : 'home');
-    if (state.lastVersion !== APP_VERSION) openNews(false);
+    if (state.lastVersion !== APP_VERSION) {
+      if (APP_VERSION === '3.5') openFarewell(); else openNews(false);
+    }
   });
 }
 window.claude?.hot?.snapshot?.(() => ({ n: state.n, best: state.best, coins: state.coins, sound: state.sound, screen: state.screen }));
@@ -5345,6 +5418,7 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 
 // Android back button (called by the APK wrapper). Returns true when the game handled it.
 window.blocksolveBack = () => {
+  if (!$('farewellOverlay').hidden) { $('farewellOk').click(); return true; }
   if (!$('newsOverlay').hidden) { $('newsOk').click(); return true; }
   if (!$('pzOverOverlay').hidden) { $('pzOverOverlay').hidden = true; showScreen('more'); return true; }
   if (!$('mgOverOverlay').hidden) { $('mgOverOverlay').hidden = true; showScreen('more'); return true; }
