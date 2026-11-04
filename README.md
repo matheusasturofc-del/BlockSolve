@@ -51,7 +51,9 @@ Na tela inicial, o botão **Mais jogos** abre:
 
 - **Encaixe:** arraste as peças para um tabuleiro 8×8; linhas e colunas completas somem. Cada vez que o tabuleiro fica
   totalmente vazio, o tema de fundo muda (8 temas para colecionar; o botão Tema troca entre os já ganhos). As peças usam o
-  estilo escolhido na loja, o recorde e a partida em andamento ficam salvos, e cada 100 pontos vira 1 moeda.
+  estilo escolhido na loja, o recorde e a partida em andamento ficam salvos, e cada 100 pontos vira 1 moeda. As peças
+  encaixam como ímã na casa livre mais próxima, e quando falta pouco para completar uma linha ou coluna o sorteio costuma
+  trazer uma peça que completa (de preferência a que limpa mais linhas de uma vez).
 - **Junta-Junta:** solte bolinhas numa caixa de vidro; duas iguais se juntam na próxima (rosa + rosa = verde...) até o
   Planeta, e dois planetas viram uma Supernova. Física própria (sem bibliotecas). Cada uma das 11 bolinhas tem carinha
   própria e reage: cara feia quando alguém cai em cima, susto caindo, suor perto da borda, soninho parada, festa ao se

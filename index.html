@@ -1953,6 +1953,8 @@ const CHANGELOG = [
     'Uma mensagem especial de boa viagem para a irmã.',
     'Correção: o Junta-Junta ficava com zoom grande demais em celulares com tela de alta definição.',
     'Correção: no Jogo da velha os quadradinhos não mudam mais de tamanho quando alguém joga.',
+    'Encaixe mais leve: as peças acompanham o dedo sem travar e encaixam como ímã na casa livre mais próxima.',
+    'Encaixe mais esperto: quando falta pouco para completar uma linha ou coluna, vem uma peça que completa, para você fazer mais pontos.',
   ] },
   { v: '3.4', items: [
     'Jogo novo em Mais jogos: Junta-Junta. Solte bolinhas na caixa; duas iguais se juntam e crescem (rosa + rosa = verde...) até virar um planeta.',
@@ -3171,7 +3173,7 @@ function renderMore() {
     const filled = { '0,0': 'red', '1,0': 'red', '0,1': 'red', '3,0': 'yellow', '3,1': 'yellow', '1,3': 'blue', '2,3': 'blue', '3,3': 'blue', '2,2': 'green' };
     for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
       const col = filled[x + ',' + y];
-      if (col) pzCell(c, pad + x * s, pad + y * s, s, col, x * 7 + y);
+      if (col) pzCell(c, pad + x * s, pad + y * s, s, col, x * 7 + y, 1);
       else { c.fillStyle = th.cell; c.beginPath(); rr(pad + x * s + 2, pad + y * s + 2, s - 4, s - 4, s * 0.16); c.fill(); }
     }
   });
@@ -3230,21 +3232,41 @@ const PZ_SHAPES = (() => {
 const PZ_ONE = makeShape([[0, 0]]);
 const pz = {
   grid: new Array(PZ_N * PZ_N).fill(null), pieces: [null, null, null], score: 0, combo: 0, over: false, started: false, startBest: 0,
-  drag: null, fx: [], pops: [], parts: [], banner: null, seq: 1,
+  drag: null, fx: [], pops: [], parts: [], banner: null, seq: 1, ver: 0,
   w: 0, h: 0, dpr: 1, cs: 30, bx: 0, by: 0, board: null, trayY: 0, trayH: 0, slotW: 0, tcs: 16,
 };
 const pzCanvas = $('pzCanvas'), pzCtx = pzCanvas.getContext('2d');
 
-// One cell drawn in the piece style picked in the shop.
-function pzCell(c, x, y, size, color, id) {
-  const saved = geo.cs;
-  geo.cs = size;
-  withCtx(c, () => {
-    const b = { id, shape: PZ_ONE, color };
-    drawBlockDepth(b, x, y, 0);
-    drawBlockTop(b, x, y, 0);
-  });
-  geo.cs = saved;
+// One cell in the piece style picked in the shop. Each colour/size/style is drawn once into a
+// small sprite and then just copied, which keeps dragging smooth on slower phones.
+const pzSprites = new Map();
+function pzSprite(color, size, dpr) {
+  const px = Math.max(4, Math.round(size * dpr));
+  const key = `${color}|${px}|${RT.piece}`;
+  let sp = pzSprites.get(key);
+  if (!sp) {
+    if (pzSprites.size > 160) pzSprites.clear();
+    const pad = Math.ceil(px * 0.3);
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = px + pad * 2;
+    const sc = cv.getContext('2d');
+    const saved = geo.cs;
+    geo.cs = px;
+    withCtx(sc, () => {
+      const b = { id: COLOR_ORDER.indexOf(color) + 1, shape: PZ_ONE, color };
+      drawBlockDepth(b, pad, pad, 0);
+      drawBlockTop(b, pad, pad, 0);
+    });
+    geo.cs = saved;
+    sp = { cv, pad: pad / dpr, size: (px + pad * 2) / dpr, unit: px / dpr };
+    pzSprites.set(key, sp);
+  }
+  return sp;
+}
+function pzCell(c, x, y, size, color, id, dpr = pz.dpr || 1) {
+  const sp = pzSprite(color, size, dpr);
+  const k = size / sp.unit;
+  c.drawImage(sp.cv, x - sp.pad * k, y - sp.pad * k, sp.size * k, sp.size * k);
 }
 function pzRandomPiece() {
   const total = PZ_SHAPES.reduce((n, p) => n + p.w, 0);
@@ -3259,16 +3281,52 @@ function pzFits(shape, gx, gy) {
   }
   return true;
 }
+function pzFitsCached(p) {
+  if (p.fitVer !== pz.ver) { p.fitVer = pz.ver; p.fits = pzFitsAnywhere(p); }
+  return p.fits;
+}
 function pzFitsAnywhere(p) {
   for (let y = 0; y <= PZ_N - p.shape.h; y++)
     for (let x = 0; x <= PZ_N - p.shape.w; x++) if (pzFits(p.shape, x, y)) return true;
   return false;
 }
-// New hand of three; at least one of them always fits (two when it can manage).
+// Most lines a shape could complete anywhere on the board right now.
+function pzBestClear(shape) {
+  let best = 0;
+  for (let gy = 0; gy <= PZ_N - shape.h; gy++) for (let gx = 0; gx <= PZ_N - shape.w; gx++) {
+    if (!pzFits(shape, gx, gy)) continue;
+    const filled = i => pz.grid[i] || shape.set.has(((i % PZ_N) - gx) + ',' + (Math.floor(i / PZ_N) - gy));
+    let lines = 0;
+    for (let y = gy; y < gy + shape.h; y++) { let full = true; for (let x = 0; x < PZ_N; x++) if (!filled(y * PZ_N + x)) { full = false; break; } if (full) lines++; }
+    for (let x = gx; x < gx + shape.w; x++) { let full = true; for (let y = 0; y < PZ_N; y++) if (!filled(y * PZ_N + x)) { full = false; break; } if (full) lines++; }
+    if (lines > best) best = lines;
+  }
+  return best;
+}
+function pzPieceOf(entry) {
+  return { shape: entry.shape, color: COLOR_ORDER[Math.floor(Math.random() * COLOR_ORDER.length)], id: pz.seq++ };
+}
+// New hand of three. When a row or column is close to done, the hand usually brings a piece that
+// finishes it (the one that clears the most lines at once), and at least one piece always fits.
 function pzDeal() {
+  const helpers = [];
+  let most = 0;
+  for (const e of PZ_SHAPES) {
+    const n = pzBestClear(e.shape);
+    if (n > most) { most = n; helpers.length = 0; }
+    if (n && n === most) helpers.push(e);
+  }
+  const helping = most > 0 && Math.random() < 0.8;
+  const pickHelper = () => {
+    const total = helpers.reduce((a, e) => a + e.w, 0);
+    let r = Math.random() * total;
+    for (const e of helpers) { r -= e.w; if (r <= 0) return pzPieceOf(e); }
+    return pzPieceOf(helpers[0]);
+  };
   let fallback = null;
   for (let t = 0; t < 80; t++) {
     const set = [pzRandomPiece(), pzRandomPiece(), pzRandomPiece()];
+    if (helping) set[Math.floor(Math.random() * 3)] = pickHelper();
     const fit = set.filter(pzFitsAnywhere).length;
     if (fit >= 2) { pz.pieces = set; return; }
     if (fit >= 1 && !fallback) fallback = set;
@@ -3279,6 +3337,7 @@ function pzReset() {
   pz.grid.fill(null);
   pz.score = 0; pz.combo = 0; pz.over = false; pz.fx = []; pz.pops = []; pz.parts = []; pz.banner = null; pz.drag = null;
   pz.startBest = games.pzBest;
+  pz.ver++;
   pzDeal();
   $('pzOverOverlay').hidden = true;
   pzSave(); pzHud();
@@ -3301,7 +3360,7 @@ function pzRestore() {
     return found && COLORS[p.c] ? { shape: found.shape, color: p.c, id: pz.seq++ } : null;
   });
   while (pz.pieces.length < 3) pz.pieces.push(null);
-  pz.score = s.score | 0; pz.combo = s.combo | 0; pz.over = false;
+  pz.score = s.score | 0; pz.combo = s.combo | 0; pz.over = false; pz.ver++;
   pz.startBest = games.pzBest;
   if (pz.pieces.every(p => !p)) pzDeal();
   return true;
@@ -3323,6 +3382,7 @@ function pzPlace(idx, gx, gy) {
   const p = pz.pieces[idx];
   for (const [cx, cy] of p.shape.cells) pz.grid[(gy + cy) * PZ_N + gx + cx] = { color: p.color, id: pz.seq++, pop: 0.2 };
   pz.pieces[idx] = null;
+  pz.ver++;
   let gained = p.shape.cells.length;
   const rows = [], cols = [];
   for (let y = 0; y < PZ_N; y++) { let full = true; for (let x = 0; x < PZ_N; x++) if (!pz.grid[y * PZ_N + x]) { full = false; break; } if (full) rows.push(y); }
@@ -3390,7 +3450,7 @@ function pzGameOver() {
 function pzLayout() {
   const r = $('pzStage').getBoundingClientRect();
   if (!r.width || !r.height) return;
-  pz.dpr = Math.min(window.devicePixelRatio || 1, 3);
+  pz.dpr = Math.min(window.devicePixelRatio || 1, 2);
   pz.w = r.width; pz.h = r.height;
   pzCanvas.width = Math.round(r.width * pz.dpr); pzCanvas.height = Math.round(r.height * pz.dpr);
   const B = Math.max(80, Math.min(r.width - 4, (r.height - 8) * 0.7)), pad = B * 0.03;
@@ -3405,19 +3465,28 @@ function pzLayout() {
   pz.tcs = Math.max(8, Math.min(pz.cs * 0.62, pz.slotW / 5.4, pz.trayH / 5.4));
 }
 function pzPos(e) { const r = pzCanvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
-// The piece floats a little above the finger so it stays visible while dragging.
+// The piece floats just above the finger so it stays visible while dragging, and snaps like a
+// magnet to the closest free spot when it is almost there.
 function pzAim() {
   const d = pz.drag, s = d.piece.shape;
   d.left = d.px - s.w * pz.cs / 2;
-  d.top = d.py - s.h * pz.cs - pz.cs * 0.9;
-  d.gx = Math.round((d.left - pz.bx) / pz.cs);
-  d.gy = Math.round((d.top - pz.by) / pz.cs);
-  d.valid = pzFits(s, d.gx, d.gy);
+  d.top = d.py - s.h * pz.cs - pz.cs * 0.6;
+  const fx = (d.left - pz.bx) / pz.cs, fy = (d.top - pz.by) / pz.cs;
+  const rx = Math.round(fx), ry = Math.round(fy);
+  let best = null, bestD = 1.25;
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    const gx = rx + dx, gy = ry + dy;
+    if (!pzFits(s, gx, gy)) continue;
+    const dist = Math.hypot(gx - fx, gy - fy);
+    if (dist < bestD) { bestD = dist; best = [gx, gy]; }
+  }
+  d.valid = !!best;
+  if (best) { d.gx = best[0]; d.gy = best[1]; } else { d.gx = rx; d.gy = ry; }
 }
 pzCanvas.addEventListener('pointerdown', e => {
   if (pz.over || pz.drag) return;
   const p = pzPos(e);
-  if (p.y < pz.trayY - 8 || p.y > pz.trayY + pz.trayH + 30) return;
+  if (p.y < pz.trayY - 24 || p.y > pz.trayY + pz.trayH + 40) return;
   const i = Math.max(0, Math.min(2, Math.floor(p.x / pz.slotW)));
   const piece = pz.pieces[i];
   if (!piece) return;
@@ -3482,11 +3551,22 @@ function pzDraw(time) {
   c.clearRect(0, 0, pz.w, pz.h);
   withCtx(c, () => {
     const b = pz.board;
-    c.fillStyle = 'rgba(0,0,0,.2)'; c.beginPath(); rr(b.x, b.y + 8, b.s, b.s, 22); c.fill();
-    c.fillStyle = th.board; c.beginPath(); rr(b.x, b.y, b.s, b.s, 22); c.fill();
-    for (let y = 0; y < PZ_N; y++) for (let x = 0; x < PZ_N; x++) {
-      c.fillStyle = th.cell; c.beginPath(); rr(pz.bx + x * cs + 2, pz.by + y * cs + 2, cs - 4, cs - 4, cs * 0.16); c.fill();
+    const bgKey = `${games.pzTheme}|${b.x}|${b.y}|${b.s}|${pz.w}|${pz.h}|${pz.dpr}`;
+    if (!pz.bg || pz.bgKey !== bgKey) {
+      pz.bgKey = bgKey;
+      pz.bg = document.createElement('canvas');
+      pz.bg.width = pzCanvas.width; pz.bg.height = pzCanvas.height;
+      const bc = pz.bg.getContext('2d');
+      bc.setTransform(pz.dpr, 0, 0, pz.dpr, 0, 0);
+      withCtx(bc, () => {
+        bc.fillStyle = 'rgba(0,0,0,.2)'; bc.beginPath(); rr(b.x, b.y + 8, b.s, b.s, 22); bc.fill();
+        bc.fillStyle = th.board; bc.beginPath(); rr(b.x, b.y, b.s, b.s, 22); bc.fill();
+        for (let y = 0; y < PZ_N; y++) for (let x = 0; x < PZ_N; x++) {
+          bc.fillStyle = th.cell; bc.beginPath(); rr(pz.bx + x * cs + 2, pz.by + y * cs + 2, cs - 4, cs - 4, cs * 0.16); bc.fill();
+        }
+      });
     }
+    c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(pz.bg, 0, 0); c.restore();
     // where the dragged piece would land, and which lines it would complete
     const d = pz.drag;
     let lit = null;
@@ -3531,16 +3611,15 @@ function pzDraw(time) {
       if (!p || (d && d.i === i)) continue;
       const t = pz.tcs, w = p.shape.w * t, h = p.shape.h * t;
       const ox = pz.slotW * (i + 0.5) - w / 2, oy = pz.trayY + pz.trayH / 2 - h / 2;
-      const fits = pzFitsAnywhere(p);
+      const fits = pzFitsCached(p);
       c.save(); if (!fits) c.globalAlpha = 0.32;
       for (const [cx, cy] of p.shape.cells) pzCell(c, ox + cx * t, oy + cy * t, t, p.color, p.id);
       c.restore();
     }
     if (d) {
-      c.save();
-      c.shadowColor = 'rgba(0,0,0,.35)'; c.shadowBlur = cs * 0.4; c.shadowOffsetY = cs * 0.15;
+      c.fillStyle = 'rgba(20,20,40,.18)';
+      for (const [cx, cy] of d.piece.shape.cells) { c.beginPath(); rr(d.left + cx * cs + cs * 0.1, d.top + cy * cs + cs * 0.22, cs * 0.9, cs * 0.9, cs * 0.2); c.fill(); }
       for (const [cx, cy] of d.piece.shape.cells) pzCell(c, d.left + cx * cs, d.top + cy * cs, cs, d.piece.color, d.piece.id);
-      c.restore();
     }
     for (const p of pz.parts) {
       c.save(); c.globalAlpha = Math.max(0, 1 - p.t / 1.1); c.fillStyle = p.c;
@@ -4181,6 +4260,7 @@ function mgOpen() {
 
 loadGames();
 window.__mgBall = (c, b, x, y, r, lx, ly) => withCtx(c, () => mgBall(c, b, x, y, r, lx, ly));
+window.__pzDeal = pzDeal;
 window.__minigames = { mg, MG_TIERS, mgDrop, pz, games, pzReset, pzPlace, pzFits, ttt, tttRobotMove, tttWinner, PZ_THEMES };
 
 /* ---------- Loading ---------- */
