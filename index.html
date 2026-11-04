@@ -440,7 +440,7 @@ body[data-bg="sketch"] {
 .pz-theme i { width: 28px; height: 28px; border-radius: 9px; flex: none; box-shadow: inset 0 0 0 2px rgba(255,255,255,.7); }
 .pz-theme:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--paper-edge); }
 .pz-stage { flex: 1; min-height: 0; width: min(100%, 420px); position: relative; }
-#pzCanvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
+#pzCanvas, #mgCanvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
 .pz-tip { margin: 0; text-align: center; color: var(--page-ink-soft); font-weight: 700; font-size: .9rem; }
 
 .merge-screen {
@@ -460,7 +460,7 @@ body[data-bg="sketch"] {
 .ttt-score small { display: block; font-weight: 800; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); }
 .ttt-score b { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; color: var(--ink); font-variant-numeric: tabular-nums; }
 .ttt-board {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 10px;
   background: #26335f; padding: 12px; border-radius: 26px; box-shadow: 0 8px 0 #1a2448;
   width: min(100%, 360px); aspect-ratio: 1; align-self: center;
 }
@@ -470,7 +470,8 @@ body[data-bg="sketch"] {
 }
 .ttt-cell:active:not(:disabled) { transform: scale(.96); }
 .ttt-cell:disabled { cursor: default; }
-.ttt-cell svg { width: 64%; height: 64%; overflow: visible; }
+.ttt-cell { min-width: 0; min-height: 0; }
+.ttt-cell svg { position: absolute; left: 18%; top: 18%; width: 64%; height: 64%; overflow: visible; }
 .ttt-cell .mark-x { stroke: #ff6b6b; }
 .ttt-cell .mark-o { stroke: #5aa9ff; }
 .ttt-cell svg path, .ttt-cell svg circle { fill: none; stroke-width: 13; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; animation: draw-mark .3s ease-out forwards; }
@@ -1948,7 +1949,11 @@ const WORLDS = [
 const COIN_CELL = 5;
 const APP_VERSION = '3.5';
 const CHANGELOG = [
-  { v: '3.5', items: ['Uma mensagem especial de boa viagem para a irmã.'] },
+  { v: '3.5', items: [
+    'Uma mensagem especial de boa viagem para a irmã.',
+    'Correção: o Junta-Junta ficava com zoom grande demais em celulares com tela de alta definição.',
+    'Correção: no Jogo da velha os quadradinhos não mudam mais de tamanho quando alguém joga.',
+  ] },
   { v: '3.4', items: [
     'Jogo novo em Mais jogos: Junta-Junta. Solte bolinhas na caixa; duas iguais se juntam e crescem (rosa + rosa = verde...) até virar um planeta.',
     'Cada bolinha tem carinha própria e reage: cara feia quando cai em cima de outra diferente, susto ao cair, suor perto da borda, soninho quando fica parada e festa quando se junta.',
