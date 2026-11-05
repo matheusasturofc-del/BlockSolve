@@ -30,15 +30,20 @@ Esvazie o tabuleiro para passar de nível.
 | Fantasma | 260 | Atravessa os outros blocos, mas precisa parar numa casa livre. |
 | Parede que anda | 280 | Muda de lugar a cada jogada; o contorno tracejado mostra o próximo lugar. |
 | Bloco espelho | 300 | Anda para o lado contrário do dedo. |
+| Gelo colorido | 320 | Gelo de uma cor: só derrete quando saem blocos daquela cor. |
+| Pedra rachada | 340 | Some sozinha depois que um certo número de blocos sai. |
+| Bloco seta | 360 | Só anda na direção da seta e nunca volta. |
+| Bloco pisca-cor | 380 | Troca entre duas cores a cada jogada; a bolinha mostra a próxima cor. |
+| Bloco com bateria | 400 | Só anda o número de casas da bateria, contando o caminho mais curto. |
 
 A partir da bomba, cada mecânica nova estreia exatamente 20 níveis depois da anterior.
 
 ## Conteúdo
 
-- Abertura com a animação da marca MiR COiSAS (linha, M, i, R, pingo do i e COiSAS), depois tela de carregamento, tela inicial (Jogar / Loja / Opções) e seleção de níveis em 12 mundos, tela de novidades a cada atualização e dedicatória para a família.
-- **300 níveis** de campanha com dificuldade crescente. Ao vencer o último aparece a mensagem de fim de jogo.
+- Abertura com a animação da marca MiR COiSAS (linha, M, i, R, pingo do i e COiSAS), depois tela de carregamento, tela inicial (Jogar / Loja / Opções) e seleção de níveis em 16 mundos, tela de novidades a cada atualização e dedicatória para a família.
+- **400 níveis** de campanha com dificuldade crescente. Ao vencer o último aparece a mensagem de fim de jogo.
 - **Modo infinito** liberado desde o começo: começa fácil e vai trazendo todas as mecânicas.
-- Todo nível tem solução garantida pelo gerador, conferida reproduzindo a solução planejada de cada um; os 300 também foram jogados por um robô arrastando com o mouse, tanto seguindo a dica quanto sem estratégia (sempre tirando o bloco mais fácil).
+- Todo nível tem solução garantida pelo gerador, conferida reproduzindo a solução planejada de cada um; os 400 também foram jogados por um robô arrastando com o mouse, tanto seguindo a dica quanto sem estratégia (sempre tirando o bloco mais fácil).
 - **Loja:** fundos Padrão, Colorido, Desenho, Noite e Oceano; peças Padrão, Colorido, Desenho, Neon e Pixel.
 - Opções: som, vibração e apagar progresso. Progresso, moedas e compras ficam salvos no aparelho.
 - Botões no jogo: **Desfazer**, **Reiniciar** e **Dica** (a primeira de cada nível é grátis, depois 10 moedas; cada nível vale 20). A dica segue a solução planejada do nível enquanto ela ainda vale.
@@ -60,18 +65,21 @@ Na tela inicial, o botão **Mais jogos** abre:
   por cima das outras, e a carinha gira junto (quem roda rápido demais fica tonto). Cada uma das 11 bolinhas tem carinha
   própria e reage: cara feia quando alguém cai em cima, susto caindo, suor perto da borda, soninho parada, festa ao se
   juntar, e os olhinhos seguem a mira. Se uma bolinha ficar acima da linha tracejada, a caixa encheu e a partida acaba.
-- **Um Traço:** comece na bolinha e ligue todas as casas com um traço só, sem passar duas vezes. 100 fases, de 3×3 até
-  7×8 cheias; cada fase é gerada a partir de um caminho que passa por todas as casas, então sempre tem solução. Tem dica
-  (mostra os próximos passos certos), recomeçar, escolha de fase, e cada fase sorteia uma cor nova para o traço.
+- **Um Traço:** comece na bolinha e ligue todas as casas com um traço só, sem passar duas vezes. São 200 fases, de 3×3
+  até 9×10 cheias. Cada fase é gerada a partir de um caminho que passa por todas as casas, então sempre tem solução. Tem
+  dica (mostra os próximos passos certos), recomeçar e escolha de fase, e cada fase sorteia uma cor nova para o traço.
 - **Separa Cores:** toque num copinho e depois em outro para despejar a água de cima. Ela só cai em cima da mesma cor
-  ou num copinho vazio, e as cores nunca se misturam. O objetivo é deixar cada copinho com uma cor só. São 100 fases:
-  começam com 5 copinhos de 4 camadas e terminam com 14 copinhos de 5 camadas e 12 cores. A cada 20 fases (20, 40, 60, 80 e 100) vem uma
-  fase misteriosa: só a camada de cima aparece, e cada cor escondida se revela quando chega ao topo. Tem desfazer,
-  recomeçar e um copinho extra pequeno, de 1 camada, para quando não houver mais jogadas. Desfazer custa 2 moedas e
-  o copinho extra custa 10. O copinho voa, inclina e despeja com a água sempre reta, e o copinho completo ganha uma rolha
-  que cai quicando. Dá para erguer outro copinho enquanto um despeja: o despejo novo espera a vez se usar um copinho
-  ainda em movimento, e tudo acelera quando há vários na fila. Um resolvedor testou todas as 100 fases, e cada uma
-  tem solução.
+  ou num copinho vazio, e as cores nunca se misturam. O objetivo é deixar cada copinho com uma cor só.
+  - São 200 fases. Elas começam com 5 copinhos de 4 camadas e chegam a 16 copinhos de 5 camadas com 14 cores. Nas fases
+    101 a 200, duas camadas da mesma cor nunca começam juntas.
+  - A cada 20 fases vem uma fase misteriosa: só a camada de cima aparece, e cada cor escondida se revela quando chega
+    ao topo.
+  - Tem desfazer (2 moedas), recomeçar e um copinho extra pequeno, de 1 camada (10 moedas), para quando não houver
+    mais jogadas.
+  - O copinho voa, inclina e despeja com a água sempre reta, e o copinho completo ganha uma rolha que cai quicando.
+  - Dá para erguer outro copinho enquanto um despeja, e vários copinhos podem despejar no mesmo copinho ao mesmo tempo.
+    Um despejo que usa um copinho ainda em movimento espera a vez, e tudo acelera quando há vários na fila.
+  - Um resolvedor testou todas as 200 fases, e cada uma tem solução.
 - **Jogo da velha:** você contra o robô, em fácil, médio ou difícil. No difícil ele joga perfeito e nunca perde
   (verificado em todas as partidas possíveis). Vitórias dão moedas.
 
