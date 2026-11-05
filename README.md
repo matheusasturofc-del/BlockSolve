@@ -67,7 +67,9 @@ Na tela inicial, o botão **Mais jogos** abre:
   ou num copinho vazio, e as cores nunca se misturam. O objetivo é deixar cada copinho com uma cor só. São 100 fases:
   começam com 5 copinhos de 4 camadas e terminam com 14 copinhos de 5 camadas e 12 cores. A cada 20 fases (20, 40, 60, 80 e 100) vem uma
   fase misteriosa: só a camada de cima aparece, e cada cor escondida se revela quando chega ao topo. Tem desfazer,
-  recomeçar e um copinho extra por fase para quando não houver mais jogadas. Um resolvedor testou todas as 100 fases,
+  recomeçar e um copinho extra pequeno, de 1 camada, para quando não houver mais jogadas. Desfazer custa 2 moedas e
+  o copinho extra custa 10. O copinho voa, inclina e despeja com a água sempre reta, e o copinho completo ganha uma rolha
+  que cai quicando. Um resolvedor testou todas as 100 fases,
   e cada uma tem solução.
 - **Jogo da velha:** você contra o robô, em fácil, médio ou difícil. No difícil ele joga perfeito e nunca perde
   (verificado em todas as partidas possíveis). Vitórias dão moedas.
