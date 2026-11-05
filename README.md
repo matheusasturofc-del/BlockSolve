@@ -35,7 +35,7 @@ A partir da bomba, cada mecânica nova estreia exatamente 20 níveis depois da a
 
 ## Conteúdo
 
-- Tela de carregamento, tela inicial (Jogar / Loja / Opções) e seleção de níveis em 12 mundos, tela de novidades a cada atualização e dedicatória para a família.
+- Abertura com a animação da marca MiR COiSAS (linha, M, i, R, pingo do i e COiSAS), depois tela de carregamento, tela inicial (Jogar / Loja / Opções) e seleção de níveis em 12 mundos, tela de novidades a cada atualização e dedicatória para a família.
 - **300 níveis** de campanha com dificuldade crescente. Ao vencer o último aparece a mensagem de fim de jogo.
 - **Modo infinito** liberado desde o começo: começa fácil e vai trazendo todas as mecânicas.
 - Todo nível tem solução garantida pelo gerador, conferida reproduzindo a solução planejada de cada um; os 300 também foram jogados por um robô arrastando com o mouse, tanto seguindo a dica quanto sem estratégia (sempre tirando o bloco mais fácil).

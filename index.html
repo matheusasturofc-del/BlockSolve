@@ -239,6 +239,31 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 .mech .ice { background: var(--ice); }
 .mech .key { background: var(--gold); }
 
+/* ---- MiR COiSAS brand intro ---- */
+.brand-splash {
+  position: fixed; inset: 0; z-index: 60; background: #ffffff;
+  display: grid; place-items: center; transition: opacity .45s ease;
+}
+.brand-splash.out { opacity: 0; pointer-events: none; }
+.brand-splash svg { width: min(86vw, 460px); height: auto; overflow: visible; }
+.bs-line { transform-box: fill-box; transform-origin: center; transform: scaleX(0); animation: bs-open .6s .3s cubic-bezier(.3,.9,.3,1) forwards; }
+.bs-diamond { opacity: 0; transform-box: fill-box; transform-origin: center; animation: bs-pop .3s .8s ease-out forwards; }
+.bs-drop { opacity: 0; transform: translateY(-420px); }
+.bs-m { animation: bs-drop .55s 1.05s cubic-bezier(.3,1.35,.5,1) forwards; }
+.bs-i { animation: bs-drop .55s 1.45s cubic-bezier(.3,1.35,.5,1) forwards; }
+.bs-r { animation: bs-drop .55s 1.85s cubic-bezier(.3,1.35,.5,1) forwards; }
+.bs-dot { animation: bs-dot .7s 2.35s cubic-bezier(.3,1.5,.5,1) forwards; }
+.bs-coisas { opacity: 0; transform: translateY(40px); animation: bs-rise .5s 2.95s ease-out forwards; }
+@keyframes bs-open { to { transform: scaleX(1); } }
+@keyframes bs-pop { 0% { opacity: 0; transform: rotate(45deg) scale(0); } 70% { opacity: 1; transform: rotate(45deg) scale(1.25); } 100% { opacity: 1; transform: rotate(45deg) scale(1); } }
+@keyframes bs-drop { 0% { opacity: 1; transform: translateY(-420px); } 100% { opacity: 1; transform: translateY(0); } }
+@keyframes bs-dot { 0% { opacity: 1; transform: translateY(-420px); } 100% { opacity: 1; transform: translateY(0); } }
+@keyframes bs-rise { to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .bs-line, .bs-diamond, .bs-drop, .bs-coisas { animation: none; opacity: 1; transform: none; }
+  .bs-diamond { transform: rotate(45deg); }
+}
+
 /* ---- Screens: loading, home, levels, options ---- */
 .screen {
   position: fixed; inset: 0; z-index: 15;
@@ -640,6 +665,22 @@ body[data-bg="sketch"] {
     <p class="body" id="introBody"></p>
     <button class="cta" id="introBtn" type="button">Entendi</button>
   </div>
+</div>
+
+<!-- MiR COiSAS brand intro, played every time the game opens -->
+<div class="brand-splash" id="brandSplash" role="img" aria-label="MiR COiSAS">
+  <svg viewBox="60 110 460 340" aria-hidden="true">
+    <g class="bs-line">
+      <line x1="110" y1="330" x2="450" y2="330" stroke="#6b6b6b" stroke-width="13" stroke-linecap="round"/>
+    </g>
+    <rect class="bs-diamond bs-left" x="91" y="316" width="28" height="28" rx="5" fill="#6b6b6b" transform="rotate(45 105 330)"/>
+    <rect class="bs-diamond bs-right" x="441" y="316" width="28" height="28" rx="5" fill="#6b6b6b" transform="rotate(45 455 330)"/>
+    <g class="bs-drop bs-m"><path d="M133 260 V166 L190 238 L248 166 V260" fill="none" stroke="#4f6bf0" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <g class="bs-drop bs-i"><line x1="300" y1="200" x2="300" y2="260" stroke="#ffd84a" stroke-width="28" stroke-linecap="round"/></g>
+    <g class="bs-drop bs-r"><path d="M360 260 V166 H402 Q442 166 442 200 Q442 234 402 234 H360 M406 234 L442 260" fill="none" stroke="#f51d1d" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <g class="bs-drop bs-dot"><circle cx="300" cy="152" r="15" fill="#ffd84a"/></g>
+    <text class="bs-coisas" x="280" y="418" text-anchor="middle" font-family="Fredoka, Nunito, system-ui, sans-serif" font-weight="500" font-size="52" letter-spacing="2" fill="#6e6e6e">COiSAS</text>
+  </svg>
 </div>
 
 <section class="screen" id="loadingScreen" aria-label="Carregando">
@@ -1893,6 +1934,7 @@ const COIN_CELL = 5;
 const APP_VERSION = '3.6';
 const CHANGELOG = [
   { v: '3.6', items: [
+    'Abertura nova com a animação da marca MiR COiSAS.',
     'Os bichinhos do Junta-Junta agora rolam de verdade: giram ao cair, rolam pelo chão e descem de cima dos outros.',
     'A carinha gira junto com a bolinha, e quem roda rápido demais fica tonto.',
   ] },
@@ -5464,13 +5506,28 @@ function start(data) {
   requestAnimationFrame(frame);
   if (data && data.screen === 'game') {
     $('loadingScreen').hidden = true;
+    $('brandSplash').hidden = true;
     showScreen('game'); startLevel(state.n);
     return;
   }
-  runLoading(() => {
+  playBrandIntro(() => runLoading(() => {
     showScreen(data && SCREENS[data.screen] && data.screen !== 'loading' ? data.screen : 'home');
     if (state.lastVersion !== APP_VERSION) openNews(false);
-  });
+  }));
+}
+// MiR COiSAS intro: line, M, i, R, the dot of the i, then COiSAS; holds, then fades out.
+function playBrandIntro(done) {
+  const el = $('brandSplash');
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    el.classList.add('out');
+    setTimeout(() => { el.hidden = true; }, 460);
+    done();
+  };
+  el.addEventListener('pointerdown', finish, { once: true });
+  setTimeout(finish, reduceMotion ? 1200 : 4300);
 }
 window.claude?.hot?.snapshot?.(() => ({ n: state.n, best: state.best, coins: state.coins, sound: state.sound, screen: state.screen }));
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
