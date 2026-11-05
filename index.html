@@ -442,6 +442,20 @@ body[data-bg="sketch"] {
 .mg-next canvas { width: 110px; height: 44px; max-width: 100%; }
 .mg-chain-wrap { display: flex; flex-direction: column; gap: 4px; }
 .mg-chain { width: 100%; height: 62px; display: block; }
+.oneline-screen {
+  --page-bg: radial-gradient(120% 70% at 50% 0%, #2c3a5e 0%, #1a2340 70%);
+  --page-color: #1a2340; --page-ink: #f3f5ff; --page-ink-soft: #b9c2ea;
+  gap: 12px;
+}
+.ol-thumb { width: 96px; height: 96px; display: block; }
+.ol-thumb svg { width: 100%; height: 100%; display: block; }
+.ol-progress { position: relative; height: 28px; border-radius: 999px; background: #3b4a6b; overflow: hidden; }
+.ol-progress span { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 999px; transition: width .15s ease-out; }
+.ol-progress b { position: relative; display: grid; place-items: center; height: 100%; color: #ffffff; font-family: var(--font-display); font-weight: 600; font-variant-numeric: tabular-nums; }
+.ol-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+#olCanvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
+.ol-levels-card { max-height: min(88vh, 680px); }
+.ol-levels { overflow-y: auto; max-height: 52vh; padding: 4px 2px; }
 .tabs.three { grid-template-columns: repeat(3, 1fr); }
 .ttt-score { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .ttt-score div { background: var(--paper); border-radius: 16px; padding: 8px 10px; box-shadow: 0 3px 0 var(--paper-edge); text-align: center; }
@@ -617,12 +631,31 @@ body[data-bg="sketch"] {
 
 <div class="overlay" id="mgOverOverlay" hidden>
   <div class="card" role="dialog" aria-modal="true" aria-labelledby="mgOverTitle">
-    <span class="eyebrow">Junta-Junta</span>
+    <span class="eyebrow">Ball Merge</span>
     <h2 id="mgOverTitle">A caixa encheu!</h2>
     <p class="summary" id="mgOverSummary">0 pontos</p>
     <p class="reward"><span class="coin"></span><span id="mgOverReward">+0</span></p>
     <button class="cta" id="mgAgain" type="button">Jogar de novo</button>
     <button class="cta quiet" id="mgOverBack" type="button">Voltar</button>
+  </div>
+</div>
+
+<div class="overlay" id="olWinOverlay" hidden>
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="olWinTitle">
+    <span class="eyebrow">Um Traço</span>
+    <h2 id="olWinTitle">Fase completa!</h2>
+    <p class="reward"><span class="coin"></span><span id="olWinReward">+3</span></p>
+    <button class="cta" id="olNext" type="button">Próxima fase</button>
+    <button class="cta quiet" id="olWinLevels" type="button">Escolher fase</button>
+  </div>
+</div>
+
+<div class="overlay" id="olLevelsOverlay" hidden>
+  <div class="card ol-levels-card" role="dialog" aria-modal="true" aria-labelledby="olLevelsTitle">
+    <span class="eyebrow">Um Traço</span>
+    <h2 id="olLevelsTitle">Fases</h2>
+    <div class="levels ol-levels" id="olLevelsGrid"></div>
+    <button class="cta quiet" id="olLevelsClose" type="button">Fechar</button>
   </div>
 </div>
 
@@ -756,7 +789,15 @@ body[data-bg="sketch"] {
   </button>
   <button class="game-card" id="openMerge" type="button">
     <canvas id="mergeThumb" width="168" height="168" aria-hidden="true"></canvas>
-    <span class="gc-text"><b>Junta-Junta</b><small>Solte bolinhas na caixa. Duas iguais se juntam e crescem até virar um planeta. Só não deixe a caixa encher!</small><em id="mergeNote">Recorde: 0</em></span>
+    <span class="gc-text"><b>Ball Merge</b><small>Solte bolinhas na caixa. Duas iguais se juntam e crescem até virar um planeta. Só não deixe a caixa encher!</small><em id="mergeNote">Recorde: 0</em></span>
+  </button>
+  <button class="game-card" id="openOneline" type="button">
+    <span class="ol-thumb" aria-hidden="true"><svg viewBox="0 0 96 96"><rect width="96" height="96" rx="18" fill="#1f2a44"/>
+      <g fill="#3b4a6b"><rect x="10" y="10" width="22" height="22" rx="5"/><rect x="37" y="10" width="22" height="22" rx="5"/><rect x="64" y="37" width="22" height="22" rx="5"/><rect x="64" y="64" width="22" height="22" rx="5"/></g>
+      <g fill="#f0884b"><rect x="10" y="37" width="22" height="22" rx="5"/><rect x="10" y="64" width="22" height="22" rx="5"/><rect x="37" y="64" width="22" height="22" rx="5"/><rect x="37" y="37" width="22" height="22" rx="5"/></g>
+      <path d="M48 48 H21 V75 H48" fill="none" stroke="#ffd2b3" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="48" cy="48" r="6" fill="#ffffff"/></svg></span>
+    <span class="gc-text"><b>Um Traço</b><small>Ligue todas as casas com um traço só, sem passar duas vezes. 100 fases, cada vez mais difíceis.</small><em id="olNote">Fase 1 de 100</em></span>
   </button>
   <button class="game-card" id="openTtt" type="button">
     <span class="ttt-thumb" aria-hidden="true"><i class="x">✕</i><i></i><i class="o">○</i><i></i><i class="x">✕</i><i class="o">○</i><i class="o">○</i><i></i><i class="x">✕</i></span>
@@ -786,7 +827,7 @@ body[data-bg="sketch"] {
 <section class="screen top merge-screen" id="mergeScreen" hidden>
   <header class="screen-head">
     <button class="icon-btn" id="mergeBack" type="button" aria-label="Voltar para Mais jogos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
-    <h2>Junta-Junta</h2>
+    <h2>Ball Merge</h2>
     <button class="icon-btn" id="mergeRestart" type="button" aria-label="Recomeçar a partida">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
     </button>
@@ -796,10 +837,32 @@ body[data-bg="sketch"] {
     <div class="pz-stat"><small>Recorde</small><b id="mgBest">0</b></div>
     <div class="pz-stat mg-next"><small>Próximas</small><canvas id="mgNext" width="220" height="88" aria-label="Próximas bolinhas"></canvas></div>
   </div>
-  <div class="pz-stage" id="mgStage"><canvas id="mgCanvas" aria-label="Caixa do Junta-Junta"></canvas></div>
+  <div class="pz-stage" id="mgStage"><canvas id="mgCanvas" aria-label="Caixa do Ball Merge"></canvas></div>
   <div class="mg-chain-wrap">
     <canvas id="mgChain" class="mg-chain" aria-hidden="true"></canvas>
     <p class="pz-tip" id="mgTip">Toque ou arraste para mirar e solte para jogar a bolinha.</p>
+  </div>
+</section>
+
+<section class="screen top oneline-screen" id="onelineScreen" hidden>
+  <header class="screen-head">
+    <button class="icon-btn" id="onelineBack" type="button" aria-label="Voltar para Mais jogos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <h2 id="olTitle">Fase 1</h2>
+    <button class="icon-btn" id="olRestart" type="button" aria-label="Recomeçar a fase"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
+  </header>
+  <div class="ol-progress" role="progressbar" aria-label="Casas ligadas"><span id="olFill"></span><b id="olCount">1/6</b></div>
+  <div class="pz-stage" id="olStage"><canvas id="olCanvas" aria-label="Tabuleiro do Um Traço"></canvas></div>
+  <p class="pz-tip">Comece na bolinha e arraste o dedo por todas as casas.</p>
+  <div class="ol-tools">
+    <button class="tool" id="olLevelsBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></svg>
+      <span>Fases</span>
+    </button>
+    <button class="tool" id="olHintBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></svg>
+      <span>Dica</span>
+      <span class="price"><span class="coin sm"></span><span id="olHintPrice">Grátis</span></span>
+    </button>
   </div>
 </section>
 
@@ -1931,11 +1994,17 @@ const WORLDS = [
   { from: 276, name: 'Espelho' },
 ];
 const COIN_CELL = 5;
-const APP_VERSION = '3.6';
+const APP_VERSION = '3.7';
 const CHANGELOG = [
+  { v: '3.7', items: [
+    'O Junta-Junta agora se chama Ball Merge e ganhou capa nova.',
+    'Jogo novo em Mais jogos: Um Traço. Comece na bolinha e ligue todas as casas com um traço só, sem passar duas vezes.',
+    '100 fases, das pequenas 3×3 até 7×8 cheias. Tem dica, recomeçar e escolha de fase, e cada fase nova vencida dá moedas.',
+    'No Um Traço, cada fase sorteia uma cor nova para o traço.',
+  ] },
   { v: '3.6', items: [
     'Abertura nova com a animação da marca MiR COiSAS.',
-    'Os bichinhos do Junta-Junta agora rolam de verdade: giram ao cair, rolam pelo chão e descem de cima dos outros.',
+    'Os bichinhos do Ball Merge (antigo Junta-Junta) agora rolam de verdade: giram ao cair, rolam pelo chão e descem de cima dos outros.',
     'A carinha gira junto com a bolinha, e quem roda rápido demais fica tonto.',
   ] },
   { v: '3.5', items: [
@@ -2865,7 +2934,7 @@ $('levelsBtn').addEventListener('click', () => { if (!state.drag) { sfx.pick(); 
 
 /* ---------- Screens ---------- */
 const SCREENS = { loading: 'loadingScreen', home: 'homeScreen', levels: 'levelsScreen', options: 'optionsScreen', shop: 'shopScreen',
-  more: 'moreScreen', puzzle: 'puzzleScreen', ttt: 'tttScreen', merge: 'mergeScreen' };
+  more: 'moreScreen', puzzle: 'puzzleScreen', ttt: 'tttScreen', merge: 'mergeScreen', oneline: 'onelineScreen' };
 function showScreen(name) {
   state.screen = name;
   for (const [k, id] of Object.entries(SCREENS)) if (k !== 'loading') $(id).hidden = k !== name;
@@ -2876,6 +2945,7 @@ function showScreen(name) {
   if (name === 'puzzle') pzOpen();
   if (name === 'ttt') tttOpen();
   if (name === 'merge') mgOpen();
+  if (name === 'oneline') olOpen();
   if (name === 'home') {
     $('homeProgress').textContent = state.best > CAMPAIGN ? `Os ${CAMPAIGN} níveis foram vencidos` : `Nível ${state.best} de ${CAMPAIGN}`;
     $('homeEndless').textContent = state.endless > CAMPAIGN + 1 ? `Modo infinito · nível ${state.endless - CAMPAIGN}` : 'Modo infinito';
@@ -3104,7 +3174,7 @@ $('optNews').addEventListener('click', () => { sfx.pick(); openNews(true); });
 /* ---------- Mais jogos ---------- */
 const GAMES_KEY = 'blocksolve:games';
 const games = {
-  pzBest: 0, pzTheme: 0, pzUnlocked: 1, pzSave: null, mgBest: 0,
+  pzBest: 0, pzTheme: 0, pzUnlocked: 1, pzSave: null, mgBest: 0, olBest: 0, olLevel: 1,
   ttt: { easy: [0, 0, 0], medium: [0, 0, 0], hard: [0, 0, 0] }, tttLevel: 'easy',
 };
 function loadGames() {
@@ -3113,6 +3183,8 @@ function loadGames() {
     if (!g || typeof g !== 'object') return;
     if (Number.isFinite(g.pzBest)) games.pzBest = g.pzBest;
     if (Number.isFinite(g.mgBest)) games.mgBest = g.mgBest;
+    if (Number.isInteger(g.olBest)) games.olBest = Math.max(0, Math.min(g.olBest, 100));
+    if (Number.isInteger(g.olLevel)) games.olLevel = Math.max(1, Math.min(g.olLevel, 100));
     if (Number.isInteger(g.pzUnlocked)) games.pzUnlocked = Math.max(1, Math.min(g.pzUnlocked, PZ_THEMES.length));
     if (Number.isInteger(g.pzTheme)) games.pzTheme = Math.max(0, Math.min(g.pzTheme, games.pzUnlocked - 1));
     if (g.pzSave && Array.isArray(g.pzSave.grid)) games.pzSave = g.pzSave;
@@ -3130,15 +3202,38 @@ function renderMore() {
   const wins = ['easy', 'medium', 'hard'].reduce((n, k) => n + games.ttt[k][0], 0);
   $('tttNote').textContent = `Vitórias contra o robô: ${wins}`;
   $('mergeNote').textContent = `Recorde: ${games.mgBest || 0}`;
+  $('olNote').textContent = `Fases vencidas: ${games.olBest || 0} de 100`;
   const mc = $('mergeThumb'), m2 = mc.getContext('2d');
   m2.setTransform(1, 0, 0, 1, 0, 0); m2.clearRect(0, 0, mc.width, mc.height);
   withCtx(m2, () => {
-    const g = m2.createLinearGradient(0, 0, 0, mc.height);
-    g.addColorStop(0, '#fff3df'); g.addColorStop(1, '#e2d4ff');
-    m2.fillStyle = g; m2.beginPath(); rr(0, 0, mc.width, mc.height, 30); m2.fill();
-    mgBall(m2, { tier: 4, mood: 'happy', blink: 1, squash: 0 }, 58, 116, 38, 0, 0);
-    mgBall(m2, { tier: 0, mood: null, blink: 1, squash: 0 }, 120, 132, 20, -1, 0);
-    mgBall(m2, { tier: 2, mood: 'grumpy', blink: 1, squash: 0.1 }, 118, 86, 28, -0.5, 0.5);
+    const W = mc.width, H = mc.height;
+    const g = m2.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#ffe2b8'); g.addColorStop(1, '#ffc78a');
+    m2.fillStyle = g; m2.beginPath(); rr(0, 0, W, H, 30); m2.fill();
+    // rays behind the planet
+    m2.save(); m2.translate(W * 0.62, H * 0.34);
+    for (let k = 0; k < 10; k++) { m2.rotate(Math.PI / 5); m2.fillStyle = 'rgba(255,255,255,.22)'; m2.beginPath(); m2.moveTo(0, 0); m2.lineTo(W * 0.6, -W * 0.07); m2.lineTo(W * 0.6, W * 0.07); m2.closePath(); m2.fill(); }
+    m2.restore();
+    // glass box
+    const bx = W * 0.14, by = H * 0.42, bw = W * 0.72, bh = H * 0.48;
+    m2.fillStyle = 'rgba(255,248,236,.55)'; m2.beginPath(); rr(bx, by, bw, bh, 12); m2.fill();
+    m2.strokeStyle = 'rgba(255,255,255,.95)'; m2.lineWidth = 6;
+    m2.beginPath(); m2.moveTo(bx, by); m2.lineTo(bx, by + bh); m2.lineTo(bx + bw, by + bh); m2.lineTo(bx + bw, by); m2.stroke();
+    // balls piled inside
+    const ball = (tier, x, y, r, mood, ang) => mgBall(m2, { tier, mood, blink: 1, squash: 0, ang: ang || 0 }, x, y, r, 0, -0.6);
+    ball(6, W * 0.34, H * 0.76, 25, null, -0.2);
+    ball(3, W * 0.62, H * 0.8, 19, 'happy', 0.3);
+    ball(1, W * 0.76, H * 0.66, 13, null, 0.5);
+    ball(0, W * 0.5, H * 0.62, 10, 'surprised');
+    ball(4, W * 0.24, H * 0.55, 15, 'grumpy', -0.4);
+    // the planet everyone grows into, plus a merge sparkle
+    ball(10, W * 0.62, H * 0.3, 27, 'happy', -0.1);
+    m2.fillStyle = '#ffffff';
+    for (const [sx, sy, sr] of [[W * 0.24, H * 0.2, 7], [W * 0.88, H * 0.14, 5], [W * 0.86, H * 0.46, 4]]) {
+      m2.beginPath();
+      for (let i = 0; i < 8; i++) { const a2 = i * Math.PI / 4, rad = i % 2 ? sr * 0.35 : sr; m2.lineTo(sx + Math.cos(a2) * rad, sy + Math.sin(a2) * rad); }
+      m2.closePath(); m2.fill();
+    }
   });
   // little preview of the block game in its current theme
   const cv = $('puzzleThumb'), c = cv.getContext('2d'), th = PZ_THEMES[games.pzTheme];
@@ -3775,7 +3870,7 @@ function tttOpen() {
   if (!ttt.board.some(Boolean) && !ttt.busy) tttNewGame(true);
   else tttRender(ttt.over ? (tttWinner(ttt.board) || {}).line : null);
 }
-/* ---------- Junta-Junta: drop balls in a box, two equal ones merge into the next size ---------- */
+/* ---------- Ball Merge: drop balls in a box, two equal ones merge into the next size ---------- */
 // Sizes are in box widths. Pink + pink = green, ... all the way up to the planet.
 const MG_TIERS = [
   { name: 'Pingo', r: 0.045, color: '#ff94c2', dark: '#e2669f', face: 'cute' },
@@ -4276,10 +4371,265 @@ function mgOpen() {
   requestAnimationFrame(() => { mgLayout(); mgHud(); });
 }
 
+// Um Traço level generator: a random path that visits L cells of a W x H grid; the cells it
+// covers are the level, its first cell is the start. Every level therefore has a solution.
+const OL_COUNT = 100;
+const OL_DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+function olSize(n) {
+  if (n <= 5) return [3, 3];
+  if (n <= 12) return [4, 4];
+  if (n <= 22) return [4, 5];
+  if (n <= 35) return [5, 5];
+  if (n <= 50) return [5, 6];
+  if (n <= 65) return [6, 6];
+  if (n <= 80) return [6, 7];
+  if (n <= 92) return [7, 7];
+  return [7, 8];
+}
+function olWalk(W, H, L, rnd) {
+  const seen = new Uint8Array(W * H), path = [];
+  let steps = 0;
+  const free = (x, y) => x >= 0 && y >= 0 && x < W && y < H && !seen[y * W + x];
+  const dfs = (x, y) => {
+    seen[y * W + x] = 1; path.push([x, y]);
+    if (path.length === L) return true;
+    if (++steps > 40000) return false;
+    // Warnsdorff: try the neighbour with the fewest onward moves first, with a little randomness
+    const next = OL_DIRS.map(([dx, dy]) => [x + dx, y + dy]).filter(([a, b]) => free(a, b))
+      .map(p => ({ p, k: OL_DIRS.filter(([dx, dy]) => free(p[0] + dx, p[1] + dy)).length + rnd() * 1.3 }))
+      .sort((a, b) => a.k - b.k);
+    for (const { p } of next) if (dfs(p[0], p[1])) return true;
+    seen[y * W + x] = 0; path.pop();
+    return false;
+  };
+  return dfs(Math.floor(rnd() * W), Math.floor(rnd() * H)) ? path : null;
+}
+const olCache = new Map();
+function olLevel(n) {
+  if (olCache.has(n)) return olCache.get(n);
+  const [W, H] = olSize(n);
+  const t = (n - 1) / (OL_COUNT - 1);
+  // more of the grid gets used as the levels go on; every fifth level is a full (or nearly full) board
+  const ratio = Math.min(1, 0.7 + 0.27 * t + (n % 5 === 0 ? 0.1 : 0));
+  const L = Math.max(5, Math.min(W * H, Math.round(W * H * ratio)));
+  for (let attempt = 0; attempt < 80; attempt++) {
+    const rnd = rng(n * 9973 + attempt * 131 + 5);
+    const path = olWalk(W, H, L, rnd);
+    if (!path) continue;
+    const lv = { n, W, H, cells: new Set(path.map(([x, y]) => y * W + x)), start: path[0], solution: path };
+    olCache.set(n, lv);
+    return lv;
+  }
+  const lv = olLevel(Math.max(1, n - 1));
+  olCache.set(n, lv);
+  return lv;
+}
+/* ---------- Um Traço: one stroke through every cell ---------- */
+const OL_COLORS = ['#f0884b', '#2fbf71', '#2f86e8', '#8a5cf0', '#ee5f8f', '#e2a50f', '#18a7a0', '#ff5a5f', '#6c7ae0', '#c0d93a', '#ff8fc0', '#3fc1ff'];
+const ol = { n: 1, lv: null, path: [], drawing: false, won: false, hint: null, freeHint: true, t: 0, w: 0, h: 0, dpr: 1, cs: 40, ox: 0, oy: 0, flash: 0 };
+const olCanvas = $('olCanvas'), olCtx = olCanvas.getContext('2d');
+const olKey = (x, y) => y * ol.lv.W + x;
+// every phase picks a new random colour for the stroke (never the same as the last one)
+function olColor() { return ol.color || OL_COLORS[0]; }
+function olPickColor() {
+  const options = OL_COLORS.filter(c => c !== ol.color);
+  ol.color = options[Math.floor(Math.random() * options.length)];
+}
+function olStart(n) {
+  ol.n = Math.max(1, Math.min(OL_COUNT, n));
+  ol.lv = olLevel(ol.n);
+  ol.path = [ol.lv.start.slice()];
+  ol.won = false; ol.hint = null; ol.freeHint = true; ol.drawing = false;
+  olPickColor();
+  games.olLevel = ol.n; saveGames();
+  $('olWinOverlay').hidden = true;
+  olLayout(); olHud();
+}
+function olHud() {
+  const total = ol.lv.cells.size, done = ol.path.length;
+  $('olTitle').textContent = `Fase ${ol.n}`;
+  $('olCount').textContent = `${done}/${total}`;
+  $('olFill').style.width = `${(done / total) * 100}%`;
+  $('olFill').style.background = olColor(ol.n);
+  $('olHintPrice').textContent = ol.freeHint ? 'Grátis' : '5';
+}
+function olLayout() {
+  const r = $('olStage').getBoundingClientRect();
+  if (!r.width || !r.height || !ol.lv) return;
+  ol.dpr = Math.min(window.devicePixelRatio || 1, 2);
+  ol.w = r.width; ol.h = r.height;
+  olCanvas.width = Math.round(r.width * ol.dpr); olCanvas.height = Math.round(r.height * ol.dpr);
+  const { W, H } = ol.lv;
+  ol.cs = Math.min((r.width - 8) / W, (r.height - 8) / H, 90);
+  ol.ox = (r.width - W * ol.cs) / 2; ol.oy = (r.height - H * ol.cs) / 2;
+}
+function olCellAt(e) {
+  const r = olCanvas.getBoundingClientRect();
+  const x = Math.floor((e.clientX - r.left - ol.ox) / ol.cs), y = Math.floor((e.clientY - r.top - ol.oy) / ol.cs);
+  if (x < 0 || y < 0 || x >= ol.lv.W || y >= ol.lv.H || !ol.lv.cells.has(olKey(x, y))) return null;
+  return [x, y];
+}
+const olInPath = (x, y) => ol.path.findIndex(p => p[0] === x && p[1] === y);
+function olStep(x, y) {
+  const end = ol.path[ol.path.length - 1], prev = ol.path[ol.path.length - 2];
+  if (prev && prev[0] === x && prev[1] === y) { ol.path.pop(); tone(380 + ol.path.length * 12, 0.04, 'sine', 0.05); return true; }
+  if (Math.abs(end[0] - x) + Math.abs(end[1] - y) !== 1) return false;
+  if (!ol.lv.cells.has(olKey(x, y)) || olInPath(x, y) >= 0) return false;
+  ol.path.push([x, y]);
+  tone(420 + ol.path.length * 14, 0.05, 'triangle', 0.07);
+  return true;
+}
+// Follow the finger, filling in skipped cells when it moves fast in a straight line.
+function olTowards(target) {
+  for (let guard = 0; guard < 20; guard++) {
+    const end = ol.path[ol.path.length - 1];
+    if (end[0] === target[0] && end[1] === target[1]) return;
+    const dx = Math.sign(target[0] - end[0]), dy = Math.sign(target[1] - end[1]);
+    const prev = ol.path[ol.path.length - 2];
+    if (prev && prev[0] === target[0] && prev[1] === target[1]) { olStep(prev[0], prev[1]); return; }
+    let moved = false;
+    if (dx && Math.abs(target[0] - end[0]) >= Math.abs(target[1] - end[1])) moved = olStep(end[0] + dx, end[1]);
+    if (!moved && dy) moved = olStep(end[0], end[1] + dy);
+    if (!moved && dx) moved = olStep(end[0] + dx, end[1]);
+    if (!moved) return;
+  }
+}
+olCanvas.addEventListener('pointerdown', e => {
+  if (ol.won || !ol.lv) return;
+  const c = olCellAt(e);
+  if (!c) return;
+  const i = olInPath(c[0], c[1]);
+  if (i < 0) return;
+  e.preventDefault(); audio();
+  try { olCanvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  if (i < ol.path.length - 1) { ol.path.length = i + 1; sfx.pick(); }
+  ol.drawing = e.pointerId; ol.hint = null;
+  olHud();
+});
+olCanvas.addEventListener('pointermove', e => {
+  if (ol.drawing !== e.pointerId) return;
+  const c = olCellAt(e);
+  if (!c) return;
+  olTowards(c);
+  olHud();
+  if (ol.path.length === ol.lv.cells.size) olWin();
+});
+olCanvas.addEventListener('pointerup', e => { if (ol.drawing === e.pointerId) ol.drawing = false; });
+olCanvas.addEventListener('pointercancel', () => { ol.drawing = false; });
+new ResizeObserver(() => { if (state.screen === 'oneline') olLayout(); }).observe($('olStage'));
+function olWin() {
+  if (ol.won) return;
+  ol.won = true; ol.drawing = false; ol.flash = 1;
+  const first = ol.n > (games.olBest || 0);
+  const reward = first ? 3 : 0;
+  if (first) { games.olBest = ol.n; state.coins += reward; save(); }
+  saveGames();
+  sfx.win(); buzz([20, 40, 30]);
+  setTimeout(() => {
+    if (state.screen !== 'oneline') return;
+    $('olWinTitle').textContent = ol.n === OL_COUNT ? 'Você venceu as 100 fases!' : `Fase ${ol.n} completa!`;
+    $('olWinReward').textContent = reward ? `+${reward}` : '+0';
+    $('olNext').textContent = ol.n === OL_COUNT ? 'Jogar de novo a fase 1' : 'Próxima fase';
+    $('olWinOverlay').hidden = false;
+    $('olNext').focus({ preventScroll: true });
+  }, 700);
+}
+// Hint: keep the part of the stroke that matches the solution and show the next steps.
+$('olHintBtn').addEventListener('click', () => {
+  if (ol.won) return;
+  if (!ol.freeHint && state.coins < 5) { sfx.deny(); toast('Você precisa de 5 moedas para uma dica.'); return; }
+  const sol = ol.lv.solution;
+  let k = 0;
+  while (k < ol.path.length && k < sol.length && ol.path[k][0] === sol[k][0] && ol.path[k][1] === sol[k][1]) k++;
+  ol.path.length = Math.max(1, k);
+  ol.hint = { from: ol.path.length - 1, cells: sol.slice(ol.path.length - 1, ol.path.length + 3), t: 0 };
+  if (ol.freeHint) ol.freeHint = false; else { state.coins -= 5; save(); }
+  sfx.pick(); olHud();
+});
+$('olRestart').addEventListener('click', () => { if (!ol.lv) return; ol.path = [ol.lv.start.slice()]; ol.won = false; ol.hint = null; olHud(); sfx.pick(); });
+$('olNext').addEventListener('click', () => { olStart(ol.n === OL_COUNT ? 1 : ol.n + 1); sfx.pick(); });
+$('olWinLevels').addEventListener('click', () => { $('olWinOverlay').hidden = true; olOpenLevels(); });
+$('olLevelsBtn').addEventListener('click', () => { sfx.pick(); olOpenLevels(); });
+$('olLevelsClose').addEventListener('click', () => { $('olLevelsOverlay').hidden = true; sfx.pick(); });
+function olOpenLevels() {
+  const grid = $('olLevelsGrid');
+  grid.innerHTML = '';
+  const open = Math.min(OL_COUNT, (games.olBest || 0) + 1);
+  for (let i = 1; i <= OL_COUNT; i++) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'lvl' + (i === ol.n ? ' current' : i <= (games.olBest || 0) ? ' done' : '');
+    b.disabled = i > open;
+    b.innerHTML = i > open ? LOCK_SVG : String(i);
+    b.setAttribute('aria-label', i > open ? `Fase ${i}, bloqueada` : `Fase ${i}`);
+    b.addEventListener('click', () => { $('olLevelsOverlay').hidden = true; olStart(i); sfx.pick(); });
+    grid.appendChild(b);
+  }
+  $('olLevelsOverlay').hidden = false;
+}
+function olOpen() {
+  requestAnimationFrame(() => {
+    if (!ol.lv) olStart(Math.min(OL_COUNT, games.olLevel || (games.olBest || 0) + 1));
+    else { olLayout(); olHud(); }
+  });
+}
+function olDraw(dt) {
+  if (!ol.lv || !ol.w) return;
+  ol.t += dt;
+  if (ol.flash > 0) ol.flash = Math.max(0, ol.flash - dt * 0.8);
+  const c = olCtx, cs = ol.cs, { W, H } = ol.lv, col = olColor(ol.n);
+  const cx = x => ol.ox + (x + 0.5) * cs, cy = y => ol.oy + (y + 0.5) * cs;
+  c.setTransform(ol.dpr, 0, 0, ol.dpr, 0, 0);
+  c.clearRect(0, 0, ol.w, ol.h);
+  withCtx(c, () => {
+    const on = new Set(ol.path.map(([x, y]) => olKey(x, y)));
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (!ol.lv.cells.has(olKey(x, y))) continue;
+      const pad = cs * 0.06, filled = on.has(olKey(x, y));
+      c.fillStyle = filled ? col : '#3b4a6b';
+      if (ol.won) { const k = Math.sin(ol.t * 10 + x + y) * 0.5 + 0.5; c.globalAlpha = 0.85 + 0.15 * k; }
+      c.beginPath(); rr(ol.ox + x * cs + pad, ol.oy + y * cs + pad, cs - pad * 2, cs - pad * 2, cs * 0.18); c.fill();
+      c.globalAlpha = 1;
+    }
+    // hint: dashed preview of the next steps
+    if (ol.hint) {
+      ol.hint.t += dt;
+      if (ol.hint.t > 3.5) ol.hint = null;
+      else {
+        c.save(); c.setLineDash([cs * 0.12, cs * 0.12]); c.lineWidth = cs * 0.14; c.lineCap = 'round'; c.lineJoin = 'round';
+        c.strokeStyle = `rgba(255,255,255,${0.55 + 0.35 * Math.sin(ol.hint.t * 8)})`;
+        c.beginPath(); ol.hint.cells.forEach(([x, y], i) => (i ? c.lineTo(cx(x), cy(y)) : c.moveTo(cx(x), cy(y)))); c.stroke();
+        c.restore();
+      }
+    }
+    // the stroke
+    if (ol.path.length > 1) {
+      c.lineWidth = cs * 0.3; c.lineCap = 'round'; c.lineJoin = 'round';
+      c.strokeStyle = 'rgba(255,255,255,.55)';
+      c.beginPath(); ol.path.forEach(([x, y], i) => (i ? c.lineTo(cx(x), cy(y)) : c.moveTo(cx(x), cy(y)))); c.stroke();
+    }
+    const [sx, sy] = ol.lv.start;
+    c.fillStyle = '#ffffff';
+    c.beginPath(); c.arc(cx(sx), cy(sy), cs * 0.2, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = col; c.lineWidth = cs * 0.05; c.stroke();
+    const [ex, ey] = ol.path[ol.path.length - 1];
+    if (ol.path.length > 1 || !ol.won) {
+      const pulse = ol.drawing ? 0.42 : 0.3 + 0.04 * Math.sin(ol.t * 5);
+      c.fillStyle = 'rgba(255,255,255,.22)';
+      c.beginPath(); c.arc(cx(ex), cy(ey), cs * pulse, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#ffffff';
+      c.beginPath(); c.arc(cx(ex), cy(ey), cs * 0.16, 0, Math.PI * 2); c.fill();
+    }
+    if (ol.flash > 0) { c.fillStyle = `rgba(255,255,255,${ol.flash * 0.35})`; c.fillRect(0, 0, ol.w, ol.h); }
+  });
+}
+$('openOneline').addEventListener('click', () => { sfx.pick(); showScreen('oneline'); });
+$('onelineBack').addEventListener('click', () => { sfx.pick(); showScreen('more'); });
+
 loadGames();
 window.__mgBall = (c, b, x, y, r, lx, ly) => withCtx(c, () => mgBall(c, b, x, y, r, lx, ly));
 window.__pzDeal = pzDeal;
-window.__minigames = { mg, MG_TIERS, mgDrop, pz, games, pzReset, pzPlace, pzFits, ttt, tttRobotMove, tttWinner, PZ_THEMES };
+window.__minigames = { ol, olLevel, olStart, mg, MG_TIERS, mgDrop, pz, games, pzReset, pzPlace, pzFits, ttt, tttRobotMove, tttWinner, PZ_THEMES };
 
 /* ---------- Loading ---------- */
 function runLoading(done) {
@@ -5489,6 +5839,7 @@ function frame(ts) {
   last = ts;
   if (state.screen === 'puzzle') { pzUpdate(dt); pzDraw(ts / 1000); }
   else if (state.screen === 'merge') { mgStep(dt); mgDraw(); }
+  else if (state.screen === 'oneline') olDraw(dt);
   else if (state.level) { update(dt); draw(ts / 1000); }
   requestAnimationFrame(frame);
 }
@@ -5537,7 +5888,9 @@ window.blocksolveBack = () => {
   if (!$('newsOverlay').hidden) { $('newsOk').click(); return true; }
   if (!$('pzOverOverlay').hidden) { $('pzOverOverlay').hidden = true; showScreen('more'); return true; }
   if (!$('mgOverOverlay').hidden) { $('mgOverOverlay').hidden = true; showScreen('more'); return true; }
-  if (state.screen === 'puzzle' || state.screen === 'ttt' || state.screen === 'merge') { showScreen('more'); return true; }
+  if (!$('olLevelsOverlay').hidden) { $('olLevelsOverlay').hidden = true; return true; }
+  if (!$('olWinOverlay').hidden) { $('olWinOverlay').hidden = true; showScreen('more'); return true; }
+  if (state.screen === 'puzzle' || state.screen === 'ttt' || state.screen === 'merge' || state.screen === 'oneline') { showScreen('more'); return true; }
   if (state.screen === 'more') { showScreen('home'); return true; }
   if (!$('introOverlay').hidden) { $('introBtn').click(); return true; }
   if (!$('winOverlay').hidden) { $('winOverlay').hidden = true; showScreen('levels'); return true; }

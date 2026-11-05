@@ -54,11 +54,14 @@ Na tela inicial, o botão **Mais jogos** abre:
   estilo escolhido na loja, o recorde e a partida em andamento ficam salvos, e cada 100 pontos vira 1 moeda. As peças
   encaixam como ímã na casa livre mais próxima, e quando falta pouco para completar uma linha ou coluna o sorteio costuma
   trazer uma peça que completa (de preferência a que limpa mais linhas de uma vez).
-- **Junta-Junta:** solte bolinhas numa caixa de vidro; duas iguais se juntam na próxima (rosa + rosa = verde...) até o
+- **Ball Merge** (antigo Junta-Junta)**:** solte bolinhas numa caixa de vidro; duas iguais se juntam na próxima (rosa + rosa = verde...) até o
   Planeta, e dois planetas viram uma Supernova. Física própria (sem bibliotecas), com giro: as bolinhas rolam pelo chão e
   por cima das outras, e a carinha gira junto (quem roda rápido demais fica tonto). Cada uma das 11 bolinhas tem carinha
   própria e reage: cara feia quando alguém cai em cima, susto caindo, suor perto da borda, soninho parada, festa ao se
   juntar, e os olhinhos seguem a mira. Se uma bolinha ficar acima da linha tracejada, a caixa encheu e a partida acaba.
+- **Um Traço:** comece na bolinha e ligue todas as casas com um traço só, sem passar duas vezes. 100 fases, de 3×3 até
+  7×8 cheias; cada fase é gerada a partir de um caminho que passa por todas as casas, então sempre tem solução. Tem dica
+  (mostra os próximos passos certos), recomeçar, escolha de fase, e cada fase sorteia uma cor nova para o traço.
 - **Jogo da velha:** você contra o robô, em fácil, médio ou difícil. No difícil ele joga perfeito e nunca perde
   (verificado em todas as partidas possíveis). Vitórias dão moedas.
 
