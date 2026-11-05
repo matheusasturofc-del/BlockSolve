@@ -456,6 +456,19 @@ body[data-bg="sketch"] {
 #olCanvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
 .ol-levels-card { max-height: min(88vh, 680px); }
 .ol-levels { overflow-y: auto; max-height: 52vh; padding: 4px 2px; }
+.water-screen {
+  --page-bg: radial-gradient(circle at 15% 20%, rgba(255,255,255,.08) 0 10px, transparent 11px),
+             radial-gradient(circle at 80% 60%, rgba(255,255,255,.06) 0 16px, transparent 17px),
+             radial-gradient(circle at 40% 85%, rgba(255,255,255,.07) 0 8px, transparent 9px),
+             linear-gradient(180deg, #2b2f6b 0%, #1b1d42 100%);
+  --page-color: #1b1d42; --page-ink: #f3f5ff; --page-ink-soft: #bcc3f0;
+  gap: 12px;
+}
+.ws-tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+#wsCanvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: manipulation; display: block; }
+.lvl.ws-mystery { background: #e7dcff; box-shadow: 0 4px 0 #b9a4ec; }
+.lvl.ws-mystery small { font-size: .7rem; margin-left: 1px; color: #6b3fd1; }
+.lvl.ws-mystery.done { background: #d9f5e5; }
 .tabs.three { grid-template-columns: repeat(3, 1fr); }
 .ttt-score { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .ttt-score div { background: var(--paper); border-radius: 16px; padding: 8px 10px; box-shadow: 0 3px 0 var(--paper-edge); text-align: center; }
@@ -659,6 +672,25 @@ body[data-bg="sketch"] {
   </div>
 </div>
 
+<div class="overlay" id="wsWinOverlay" hidden>
+  <div class="card" role="dialog" aria-modal="true" aria-labelledby="wsWinTitle">
+    <span class="eyebrow">Separa Cores</span>
+    <h2 id="wsWinTitle">Fase completa!</h2>
+    <p class="reward"><span class="coin"></span><span id="wsWinReward">+3</span></p>
+    <button class="cta" id="wsNext" type="button">Próxima fase</button>
+    <button class="cta quiet" id="wsWinLevels" type="button">Escolher fase</button>
+  </div>
+</div>
+
+<div class="overlay" id="wsLevelsOverlay" hidden>
+  <div class="card ol-levels-card" role="dialog" aria-modal="true" aria-labelledby="wsLevelsTitle">
+    <span class="eyebrow">Separa Cores</span>
+    <h2 id="wsLevelsTitle">Fases</h2>
+    <div class="levels ol-levels" id="wsLevelsGrid"></div>
+    <button class="cta quiet" id="wsLevelsClose" type="button">Fechar</button>
+  </div>
+</div>
+
 <div class="overlay" id="newsOverlay" hidden>
   <div class="card news-card" role="dialog" aria-modal="true" aria-labelledby="newsTitle">
     <span class="eyebrow" id="newsEyebrow">Atualização</span>
@@ -799,6 +831,17 @@ body[data-bg="sketch"] {
       <circle cx="48" cy="48" r="6" fill="#ffffff"/></svg></span>
     <span class="gc-text"><b>Um Traço</b><small>Ligue todas as casas com um traço só, sem passar duas vezes. 100 fases, cada vez mais difíceis.</small><em id="olNote">Fase 1 de 100</em></span>
   </button>
+  <button class="game-card" id="openWater" type="button">
+    <span class="ol-thumb" aria-hidden="true"><svg viewBox="0 0 96 96"><rect width="96" height="96" rx="18" fill="#22264a"/>
+      <g stroke="rgba(235,240,255,.9)" stroke-width="2.5" fill="none">
+        <path d="M14 22h14v4c3 1 4 3 4 6v38a7 7 0 0 1-7 7h-8a7 7 0 0 1-7-7V32c0-3 1-5 4-6z"/>
+        <path d="M41 22h14v4c3 1 4 3 4 6v38a7 7 0 0 1-7 7h-8a7 7 0 0 1-7-7V32c0-3 1-5 4-6z"/>
+        <path d="M68 22h14v4c3 1 4 3 4 6v38a7 7 0 0 1-7 7h-8a7 7 0 0 1-7-7V32c0-3 1-5 4-6z"/></g>
+      <rect x="11.5" y="58" width="19" height="18" rx="6" fill="#ff4d4d"/><rect x="11.5" y="46" width="19" height="12" fill="#5ab4ff"/><rect x="11.5" y="35" width="19" height="11" fill="#ffd93b"/>
+      <rect x="38.5" y="58" width="19" height="18" rx="6" fill="#5ab4ff"/><rect x="38.5" y="46" width="19" height="12" fill="#ff4d4d"/>
+      <rect x="65.5" y="58" width="19" height="18" rx="6" fill="#2e3452"/><text x="75" y="72" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="13" fill="#ffffff">?</text><rect x="65.5" y="46" width="19" height="12" fill="#ffd93b"/></svg></span>
+    <span class="gc-text"><b>Separa Cores</b><small>Despeje a água de um copinho no outro até cada um ficar com uma cor só. 100 fases, e a cada 20 uma misteriosa.</small><em id="wsNote">Fase 1 de 100</em></span>
+  </button>
   <button class="game-card" id="openTtt" type="button">
     <span class="ttt-thumb" aria-hidden="true"><i class="x">✕</i><i></i><i class="o">○</i><i></i><i class="x">✕</i><i class="o">○</i><i class="o">○</i><i></i><i class="x">✕</i></span>
     <span class="gc-text"><b>Jogo da velha</b><small>Você contra o robô. Escolha fácil, médio ou difícil.</small><em id="tttNote">Vitórias: 0</em></span>
@@ -862,6 +905,30 @@ body[data-bg="sketch"] {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></svg>
       <span>Dica</span>
       <span class="price"><span class="coin sm"></span><span id="olHintPrice">Grátis</span></span>
+    </button>
+  </div>
+</section>
+
+<section class="screen top water-screen" id="waterScreen" hidden>
+  <header class="screen-head">
+    <button class="icon-btn" id="waterBack" type="button" aria-label="Voltar para Mais jogos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <h2 id="wsTitle">Fase 1</h2>
+    <button class="icon-btn" id="wsRestart" type="button" aria-label="Reiniciar a fase"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
+  </header>
+  <div class="pz-stage" id="wsStage"><canvas id="wsCanvas" aria-label="Copinhos do Separa Cores"></canvas></div>
+  <p class="pz-tip">Toque num copinho e depois em outro para despejar. Só cai em cima da mesma cor ou num vazio.</p>
+  <div class="ws-tools">
+    <button class="tool" id="wsUndo" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+      <span>Desfazer</span>
+    </button>
+    <button class="tool" id="wsExtra" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6v3c2 .6 3 2 3 4v9a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3v-9c0-2 1-3.4 3-4z"/><path d="M12 11v6M9 14h6"/></svg>
+      <span id="wsExtraLabel">+ Copinho</span>
+    </button>
+    <button class="tool" id="wsLevelsBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></svg>
+      <span>Fases</span>
     </button>
   </div>
 </section>
@@ -1994,8 +2061,13 @@ const WORLDS = [
   { from: 276, name: 'Espelho' },
 ];
 const COIN_CELL = 5;
-const APP_VERSION = '3.8';
+const APP_VERSION = '3.9';
 const CHANGELOG = [
+  { v: '3.9', items: [
+    'Jogo novo em Mais jogos: Separa Cores. Despeje a água de um copinho no outro até cada um ter uma cor só.',
+    '100 fases com cada vez mais cores e copinhos (até 5 camadas por copinho). A cada 20 fases vem uma misteriosa, em que as cores escondidas só aparecem quando ficam no topo.',
+    'Tem Desfazer, Reiniciar e um copinho extra por fase, e todas as fases foram conferidas: todas têm solução.',
+  ] },
   { v: '3.8', items: [
     'Encaixe: se você passar 5 minutos jogando sem limpar o tabuleiro inteiro, o tema muda sozinho. O botão Tema mostra quanto falta.',
   ] },
@@ -2937,7 +3009,7 @@ $('levelsBtn').addEventListener('click', () => { if (!state.drag) { sfx.pick(); 
 
 /* ---------- Screens ---------- */
 const SCREENS = { loading: 'loadingScreen', home: 'homeScreen', levels: 'levelsScreen', options: 'optionsScreen', shop: 'shopScreen',
-  more: 'moreScreen', puzzle: 'puzzleScreen', ttt: 'tttScreen', merge: 'mergeScreen', oneline: 'onelineScreen' };
+  more: 'moreScreen', puzzle: 'puzzleScreen', ttt: 'tttScreen', merge: 'mergeScreen', oneline: 'onelineScreen', water: 'waterScreen' };
 function showScreen(name) {
   state.screen = name;
   for (const [k, id] of Object.entries(SCREENS)) if (k !== 'loading') $(id).hidden = k !== name;
@@ -2949,6 +3021,7 @@ function showScreen(name) {
   if (name === 'ttt') tttOpen();
   if (name === 'merge') mgOpen();
   if (name === 'oneline') olOpen();
+  if (name === 'water') wsOpen();
   if (name === 'home') {
     $('homeProgress').textContent = state.best > CAMPAIGN ? `Os ${CAMPAIGN} níveis foram vencidos` : `Nível ${state.best} de ${CAMPAIGN}`;
     $('homeEndless').textContent = state.endless > CAMPAIGN + 1 ? `Modo infinito · nível ${state.endless - CAMPAIGN}` : 'Modo infinito';
@@ -3177,7 +3250,7 @@ $('optNews').addEventListener('click', () => { sfx.pick(); openNews(true); });
 /* ---------- Mais jogos ---------- */
 const GAMES_KEY = 'blocksolve:games';
 const games = {
-  pzBest: 0, pzTheme: 0, pzUnlocked: 1, pzSave: null, pzThemeTime: 0, mgBest: 0, olBest: 0, olLevel: 1,
+  pzBest: 0, pzTheme: 0, pzUnlocked: 1, pzSave: null, pzThemeTime: 0, mgBest: 0, olBest: 0, olLevel: 1, wsBest: 0, wsLevel: 1,
   ttt: { easy: [0, 0, 0], medium: [0, 0, 0], hard: [0, 0, 0] }, tttLevel: 'easy',
 };
 function loadGames() {
@@ -3187,6 +3260,8 @@ function loadGames() {
     if (Number.isFinite(g.pzBest)) games.pzBest = g.pzBest;
     if (Number.isFinite(g.pzThemeTime)) games.pzThemeTime = Math.max(0, Math.min(g.pzThemeTime, PZ_THEME_EVERY));
     if (Number.isFinite(g.mgBest)) games.mgBest = g.mgBest;
+    if (Number.isInteger(g.wsBest)) games.wsBest = Math.max(0, Math.min(g.wsBest, 100));
+    if (Number.isInteger(g.wsLevel)) games.wsLevel = Math.max(1, Math.min(g.wsLevel, 100));
     if (Number.isInteger(g.olBest)) games.olBest = Math.max(0, Math.min(g.olBest, 100));
     if (Number.isInteger(g.olLevel)) games.olLevel = Math.max(1, Math.min(g.olLevel, 100));
     if (Number.isInteger(g.pzUnlocked)) games.pzUnlocked = Math.max(1, Math.min(g.pzUnlocked, PZ_THEMES.length));
@@ -3207,6 +3282,7 @@ function renderMore() {
   $('tttNote').textContent = `Vitórias contra o robô: ${wins}`;
   $('mergeNote').textContent = `Recorde: ${games.mgBest || 0}`;
   $('olNote').textContent = `Fases vencidas: ${games.olBest || 0} de 100`;
+  $('wsNote').textContent = `Fases vencidas: ${games.wsBest || 0} de 100`;
   const mc = $('mergeThumb'), m2 = mc.getContext('2d');
   m2.setTransform(1, 0, 0, 1, 0, 0); m2.clearRect(0, 0, mc.width, mc.height);
   withCtx(m2, () => {
@@ -4651,10 +4727,306 @@ function olDraw(dt) {
 $('openOneline').addEventListener('click', () => { sfx.pick(); showScreen('oneline'); });
 $('onelineBack').addEventListener('click', () => { sfx.pick(); showScreen('more'); });
 
+/* ---------- Separa Cores: pour coloured water until every cup holds one colour ---------- */
+const WS_COUNT = 100;
+const WS_COLORS = ['#ff4d4d', '#ff9a2e', '#ffd93b', '#8ad63a', '#2fbf71', '#22c7c7', '#5ab4ff', '#2f5fe8', '#9b5cf6', '#ff6fb5', '#a0663a', '#9aa3b5'];
+const WS_LEVELS = [[4,0,"bcba caab ccab  "],[4,0,"abca aacb bcbc  "],[4,0,"caab baac ccbb  "],[4,0,"abac bcaa cbcb  "],[4,0,"bacc aabc cbab  "],[4,0,"bbac cbca acba  "],[4,0,"caab accb abbc  "],[4,0,"cacb aabc cabb  "],[4,0,"dcda cacd cbdb aabb  "],[4,0,"aabb abcd cbcd dcad  "],[4,0,"cbba adbc dccd daab  "],[4,0,"caab bcca ddbd bcad  "],[4,0,"cbdb ddab accd aabc  "],[4,0,"adbb abda cbac ddcc  "],[4,0,"cacb dbab cdda badc  "],[4,0,"dadc bdcc bbaa cdab  "],[4,0,"bada daee becd dbcc ecab  "],[4,0,"aebd ecca ddbd aacb eebc  "],[4,0,"cdae abda bebc eddb acec  "],[4,1,"caba ccee daef dcbd bfbf efad  "],[4,0,"bece bcba dcdc bdaa eade  "],[4,0,"ebda dbea ddca cbbe caec  "],[4,0,"eaab eccb bded edba cadc  "],[4,0,"bcdd bdee eaea bbcc aadc  "],[4,0,"edea cadd fbef fbac fbca bced  "],[5,0,"ebefc cbcaf caeda dfadf debbc dbeaf  "],[5,0,"faddb dcefe dbbef accbe efacb dafac  "],[5,0,"baacc aabed eadfe febfb dcdff bcdec  "],[5,0,"bcfaf cbebd dceaa dacea ebfdc dfebf  "],[5,0,"eccff aacab bfdae ceefd bacbd bdfde  "],[5,0,"bdbce eacfa cadef dadeb fcbff adcbe  "],[5,0,"dfaca accfe babbd ecbed edfed cafbf  "],[5,0,"aafda bccdd effbd bbfgd geege acggc fcabe  "],[5,0,"ggedf gcfgg badac ebeae cbdea cfdfc fbadb  "],[5,0,"cadbf ddcaa gdbff bceeg bfbea gcgeg acfde  "],[5,0,"dcgef cfbgg bdaga fgdff bbade aecce cbead  "],[5,0,"edcfb aedca afgca cgffg efbdg adeeb dgcbb  "],[5,0,"cfeeg cbcdc eebba daeda faffg dggcd bafgb  "],[5,0,"fdcab dbbad fbfab eacfa fgegc cceeg edgdg  "],[5,1,"dfhdc gbdgd cbbff aahac ghbeb aafed geghf chece  "],[5,0,"degbh cdedb febfa hgcha cgaac cfhea efgfb hbddg  "],[5,0,"agede ecahf fgchg dchdf hbafe ahdgb ccbab gdbfe  "],[5,0,"aaheh gafgf ddcgh ehbbg becce echda fdbcf bfdga  "],[5,0,"dfdab gbfcf abhdd hfeaf egecg echgc dabge chhba  "],[5,0,"hbbgg dadge dffge hhcaa eabbc ehgdf cdceh bcfaf  "],[5,0,"becfa hhgaa aebce gddgd dbggh cffhh aebdc ffebc  "],[5,0,"ghegc gbdhd ehaee daccb ahefg cafgb cbhfd dbaff  "],[5,0,"hcaca ecdec dffbg afheb gdfec egdha aggdb bhhfb  "],[5,0,"igecc ffaib ebgdh ibcaa ecded cgafa idgbb dheff hghhi  "],[5,0,"eiaff haeea gbccg aeabc hdigg dhdei fcgbd cihff bdihb  "],[5,0,"idgfg iebai bhecf bcedg cadbh hheah agfbi cafdc eigdf  "],[5,0,"cdfch gcgba hhega hdded fgaci bebbi bfiff aedhi geaic  "],[5,0,"cahhe ifibe fdgch cfcia hbbea agifd egfbe dhidg abgcd  "],[5,0,"eheff acadf cddcd cacfd ggaeb iheib ifage gibhh bbgih  "],[5,0,"ccdgb aaiff ifcgd ihbeh eihcf aagib hedha gefgd cebbd  "],[5,0,"cggfb fgcda fiafe bedcd chaie hhifi biecg dbdhe abhga  "],[5,0,"bicfi fhiba iaejg feaig fcbcd dehhj ejebg hgbcg djajc afddh  "],[5,0,"dcejh hbhbc gbdja hgffa ececf ibcjd idgjg gajaf edahb fiiei  "],[5,0,"dejci ehcdf gejhb dhcig gdfib bafgh ajfif aejhb adiga eccbj  "],[5,1,"gajci kijfd bchkg ahdhc efajb cgjck diabd bhefk hbiia ejegd fefgk  "],[5,0,"ceifj hbdee gdcdg hajda feaib ijaaf cjhfg hebci gfdgb jcbhi  "],[5,0,"eghea agbfd hcaic cgjej bebec bjjgg acfdi ddfii ihhfa hjfbd  "],[5,0,"djahd eejai gfifh dbefb hjgad ebiaa fcgfd bghic jigjc echbc  "],[5,0,"fiaje jjfif hcbci hjeag dfhjg iecgb efhda hgcdi bcgda deabb  "],[5,0,"ckbig ciadi hakee gfdke ehjda fjcjg hbjdc ciaab jfgge hdkbf hbkif  "],[5,0,"dccdg kdkae kdjjg afhcb ahigh fdhij eakfe hgbbc efkbj cigib aefij  "],[5,0,"gbgjg gccea fefcb febhh djdhf ahdij fikgj bbcdk akeai akiej kdich  "],[5,0,"dhaab ecdci jabkj hffje cgagh dbdek aigfh bifkj cdgki ecegi kbfjh  "],[5,0,"bjacf ijbad keihe fefbd bcadj gkifi kagcg ciakc hehgd bkgeh dhjfj  "],[5,0,"fekbg jgbge ekadh kcfhb icgic jbfhb iceki kjdia ahdfj jcdaa fghde  "],[5,0,"bhccf ghbib jcdkk cekjk ejfhj igddj gibaf gefgc idhif aakba ehdae  "],[5,0,"ghigk fdakd agjfb jjedc afebg edjeh gkcjd eabii ikfcb kccaf ihhbh  "],[5,0,"lalbe fgihc eccff jdldi cbklg bhach jfeba ejdhk kljig kjigg kibda hdfea  "],[5,0,"gkcbf hhedc cfbja hjckh ikchl dilbf giiee akfbj aggjl dedab jdglk ealfi  "],[5,0,"fjgkb jkhjc ghale iecba edeie hiida dfgbh jldbc kfhkg cflbf dcalj kagil  "],[5,0,"eagjh lcdhi fdief bchah ikhck dgbbe gfclk gjkce iafkl bgdde ijajf ljalb  "],[5,0,"lfkbf jgldj iehdd clkaa kjefj cggcg ihdik eghcb hjhbe dfkbi aealc ibfal  "],[5,0,"cljcf ibjfd clegi gdbef haabf khaej jjfgh cikbk bldec kghid akadi gelhl  "],[5,0,"fcllj hagbd ieaig gdfif lafbb dachk ackld gdgfb ekeil jiehh hkcjj bkecj  "],[5,1,"jegih bdjgf hggjc ekich lelfb bjhdd aacja dakdc kgbil heklf fafie ikblc  "],[5,0,"ebdjg glkfj achgf didbb keljk jhehk dabig fcalc jhifi echfl leabk ciadg  "],[5,0,"gifca ekelj bakga khged dbagc ielef bkkfl gjcld cfdaf ijjbj ihbcl hhdih  "],[5,0,"fafcc kladh ehfja cekgi jjgai gfkcb ildlb hbebd ljlki jcgae hdibf hgked  "],[5,0,"fkgie djjbl fdiga djjbf ggcck fkhek lakdi hille ajbbe fedcc ahbhi cgalh  "],[5,0,"gjigc ljfdc eebik cdbij bkheb edljf fidae fjlga ghdlc kbfhk kahhl igcaa  "],[5,0,"jigee fcibi gddkh iealc gjahk ljbde dbhac akfig lkekf gacjc lbfjd hbhlf  "],[5,0,"iljjc bldie gdcbg hgdha fkefe fgefc acbej bjihj kbahf dakkh clikl idgla  "],[5,0,"khbbk glfke ahdfa hhafg cgbji iiecg blejd lecab hddlc aekdl cjkfg jifij  "],[5,0,"gficb jakae jhkck dfeed abcck ihbll hfagd bfkfb dcijd liagj gjege ilhlh  "],[5,0,"hlebi lgadl cjafc jhkfe cklhe fdkje djefi bkhik adagc iifbd jbghg blacg  "],[5,0,"hbidj hkcci gfege hfdjb dieia lklkk habgc ckhjl ggfef aiajl bdjcl fadeb  "],[5,0,"lical kacid bcdce fjbgj lldii jhhae eegjf djgba dhfkf cghia bbkkl hegfk  "],[5,0,"kkfgd hebal fjggj idcle ibaci bjllh kkfih dcbae hkcei eajbl ggafh dcdfj  "],[5,0,"hekch ighdf ebdke cijed jliga lelgj fcfjg khdbc lkjda baffl hbakg icabi  "],[5,0,"gfjkb ejbbi jifle ighjj balcf dgakg bkiak cdfcl gekaf aechh hhdec lildd  "],[5,0,"kkffi bdjga kjdgf bbcej ialgi ldail hdedg ckcji hghhf fbake ehccl aebjl  "],[5,0,"cickf bcjkl idhgl ccgje gebha baaij lfgja lkhef dbfib dijed ealkk hfgdh  "],[5,0,"bjeif fbkgc lbjad fleia dekgf clkac ihfil ehhbj aajhk jdikb ceghg glcdd  "],[5,0,"eafjb bgjik haffb hidaa dllel bkchl igjke cdgji dcicb gdhlk kfeag ecfjh  "],[5,1,"dgilj gcgje ehakk adeel ledjk iahcb fdljb hjggd bihfc ialkf fchba kcbfi  "]];
+const ws = { n: 1, cap: 4, tubes: [], hidden: [], sel: -1, undo: [], extra: false, anim: null, won: false, t: 0, w: 0, h: 0, dpr: 1, layout: [], done: new Set(), stuckWarned: false };
+const wsCanvas = $('wsCanvas'), wsCtx = wsCanvas.getContext('2d');
+const wsTop = t => t[t.length - 1];
+function wsDecode(n) {
+  const [cap, mystery, s] = WS_LEVELS[n - 1];
+  const tubes = s.split(' ').map(t => [...t].map(ch => ch.charCodeAt(0) - 97));
+  return { cap, mystery: !!mystery, tubes };
+}
+function wsStart(n) {
+  ws.n = Math.max(1, Math.min(WS_COUNT, n));
+  const L = wsDecode(ws.n);
+  ws.cap = L.cap; ws.mystery = L.mystery;
+  ws.tubes = L.tubes.map(t => t.slice());
+  // mystery levels hide everything but the top layer of each cup
+  ws.hidden = ws.tubes.map(t => t.map((_, i) => L.mystery && i < t.length - 1));
+  ws.sel = -1; ws.undo = []; ws.extra = false; ws.anim = null; ws.won = false; ws.stuckWarned = false;
+  ws.done = new Set(ws.tubes.map((t, i) => (wsComplete(t) ? i : -1)).filter(i => i >= 0));
+  games.wsLevel = ws.n; saveGames();
+  $('wsWinOverlay').hidden = true;
+  wsLayout(); wsHud();
+  if (L.mystery) toast('Fase misteriosa: as cores escondidas aparecem quando ficam no topo.');
+}
+function wsComplete(t) { return t.length === ws.cap && t.every(c => c === t[0]); }
+function wsHud() {
+  $('wsTitle').textContent = `Fase ${ws.n}${ws.mystery ? ' ?' : ''}`;
+  $('wsUndo').disabled = !ws.undo.length;
+  $('wsExtra').disabled = ws.extra;
+  $('wsExtraLabel').textContent = ws.extra ? 'Usado' : '+ Copinho';
+}
+function wsLayout() {
+  const r = $('wsStage').getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  ws.dpr = Math.min(window.devicePixelRatio || 1, 2);
+  ws.w = r.width; ws.h = r.height;
+  wsCanvas.width = Math.round(r.width * ws.dpr); wsCanvas.height = Math.round(r.height * ws.dpr);
+  const n = ws.tubes.length, rows = n > 7 ? 2 : 1, perRow = Math.ceil(n / rows);
+  const slotW = r.width / perRow;
+  let tw = Math.min(58, slotW * 0.72);
+  let lh = tw * 0.92;
+  let th = ws.cap * lh + tw * 0.55;
+  const need = rows * th + (rows - 1) * tw * 0.9 + tw;
+  if (need > r.height) { const k = r.height / need; tw *= k; lh *= k; th *= k; }
+  ws.tw = tw; ws.lh = lh; ws.th = th;
+  const gapY = tw * 0.9, total = rows * th + (rows - 1) * gapY, y0 = (r.height - total) / 2 + tw * 0.3;
+  ws.layout = ws.tubes.map((_, i) => {
+    const row = Math.floor(i / perRow), col = i % perRow, inRow = row === rows - 1 ? n - perRow * (rows - 1) : perRow;
+    const rowW = inRow * slotW, x0 = (r.width - rowW) / 2;
+    return { x: x0 + slotW * (col + 0.5) - tw / 2, y: y0 + row * (th + gapY) };
+  });
+}
+function wsRun(i) {
+  const t = ws.tubes[i], h = ws.hidden[i];
+  if (!t.length || h[t.length - 1]) return 0;
+  let k = 1;
+  while (k < t.length && t[t.length - 1 - k] === wsTop(t) && !h[t.length - 1 - k]) k++;
+  return k;
+}
+function wsCanPour(i, j) {
+  if (i === j || ws.done.has(i)) return 0;
+  const a = ws.tubes[i], b = ws.tubes[j];
+  if (!a.length || b.length >= ws.cap) return 0;
+  if (b.length && wsTop(b) !== wsTop(a)) return 0;
+  return Math.min(wsRun(i), ws.cap - b.length);
+}
+function wsAnyMove() {
+  for (let i = 0; i < ws.tubes.length; i++) for (let j = 0; j < ws.tubes.length; j++) {
+    const amt = wsCanPour(i, j);
+    if (!amt) continue;
+    // pouring a single-colour cup into an empty one gets nowhere
+    if (!ws.tubes[j].length && wsRun(i) === ws.tubes[i].length) continue;
+    return true;
+  }
+  return false;
+}
+function wsTubeAt(e) {
+  const r = wsCanvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  return ws.layout.findIndex(p => x >= p.x - ws.tw * 0.25 && x <= p.x + ws.tw * 1.25 && y >= p.y - ws.tw * 0.6 && y <= p.y + ws.th + ws.tw * 0.2);
+}
+wsCanvas.addEventListener('pointerdown', e => {
+  if (ws.won || ws.anim) return;
+  const i = wsTubeAt(e);
+  audio();
+  if (i < 0) { ws.sel = -1; return; }
+  if (ws.sel < 0) {
+    if (!ws.tubes[i].length || ws.done.has(i)) { sfx.bump(); return; }
+    ws.sel = i; tone(520, 0.06, 'sine', 0.08); return;
+  }
+  if (ws.sel === i) { ws.sel = -1; tone(360, 0.05, 'sine', 0.06); return; }
+  const amt = wsCanPour(ws.sel, i);
+  if (!amt) {
+    // tapping another cup that can be lifted switches the selection
+    if (ws.tubes[i].length && !ws.done.has(i)) { ws.sel = i; tone(520, 0.06, 'sine', 0.08); }
+    else { sfx.deny(); ws.sel = -1; }
+    return;
+  }
+  ws.undo.push({ tubes: ws.tubes.map(t => t.slice()), hidden: ws.hidden.map(h => h.slice()), done: [...ws.done] });
+  ws.anim = { from: ws.sel, to: i, amt, color: wsTop(ws.tubes[ws.sel]), t: 0 };
+  ws.sel = -1;
+  wsHud();
+});
+function wsFinishPour() {
+  const { from, to, amt } = ws.anim;
+  for (let k = 0; k < amt; k++) { ws.tubes[to].push(ws.tubes[from].pop()); ws.hidden[to].push(false); ws.hidden[from].pop(); }
+  // reveal whatever is now on top
+  for (const h of ws.hidden) if (h.length) h[h.length - 1] = false;
+  ws.anim = null;
+  if (wsComplete(ws.tubes[to]) && !ws.done.has(to)) {
+    ws.done.add(to);
+    [784, 988, 1175].forEach((f, i) => tone(f, 0.12, 'triangle', 0.09, null, i * 0.05));
+    buzz(15);
+  }
+  if (ws.tubes.every(t => !t.length || wsComplete(t))) return wsWin();
+  if (!wsAnyMove() && !ws.stuckWarned) {
+    ws.stuckWarned = true;
+    toast(ws.extra ? 'Sem jogadas! Use Desfazer ou Reiniciar.' : 'Sem jogadas! Use Desfazer, Reiniciar ou um copinho extra.');
+  }
+  wsHud();
+}
+function wsWin() {
+  ws.won = true;
+  const first = ws.n > (games.wsBest || 0);
+  const reward = first ? (ws.mystery ? 10 : 3) : 0;
+  if (first) { games.wsBest = ws.n; state.coins += reward; save(); }
+  saveGames(); sfx.win(); buzz([20, 40, 30]);
+  setTimeout(() => {
+    if (state.screen !== 'water') return;
+    $('wsWinTitle').textContent = ws.n === WS_COUNT ? 'Você venceu as 100 fases!' : `Fase ${ws.n} completa!`;
+    $('wsWinReward').textContent = `+${reward}`;
+    $('wsNext').textContent = ws.n === WS_COUNT ? 'Jogar de novo a fase 1' : 'Próxima fase';
+    $('wsWinOverlay').hidden = false;
+    $('wsNext').focus({ preventScroll: true });
+  }, 600);
+}
+$('wsUndo').addEventListener('click', () => {
+  if (ws.anim || !ws.undo.length || ws.won) return;
+  const s = ws.undo.pop();
+  ws.tubes = s.tubes; ws.hidden = s.hidden; ws.done = new Set(s.done); ws.sel = -1; ws.stuckWarned = false;
+  if (ws.tubes.length !== ws.layout.length) wsLayout();
+  sfx.pick(); wsHud();
+});
+$('wsRestart').addEventListener('click', () => { const keepExtra = ws.extra; wsStart(ws.n); if (keepExtra) wsAddCup(true); sfx.pick(); });
+function wsAddCup(silent) {
+  ws.tubes.push([]); ws.hidden.push([]); ws.extra = true;
+  ws.undo = ws.undo.map(u => ({ ...u, tubes: u.tubes.concat([[]]), hidden: u.hidden.concat([[]]) }));
+  wsLayout(); wsHud();
+  if (!silent) { sfx.unlock(); toast('Copinho extra adicionado.'); }
+}
+$('wsExtra').addEventListener('click', () => { if (!ws.extra && !ws.anim && !ws.won) wsAddCup(false); });
+$('wsNext').addEventListener('click', () => { wsStart(ws.n === WS_COUNT ? 1 : ws.n + 1); sfx.pick(); });
+$('wsWinLevels').addEventListener('click', () => { $('wsWinOverlay').hidden = true; wsOpenLevels(); });
+$('wsLevelsBtn').addEventListener('click', () => { sfx.pick(); wsOpenLevels(); });
+$('wsLevelsClose').addEventListener('click', () => { $('wsLevelsOverlay').hidden = true; sfx.pick(); });
+function wsOpenLevels() {
+  const grid = $('wsLevelsGrid');
+  grid.innerHTML = '';
+  const open = Math.min(WS_COUNT, (games.wsBest || 0) + 1);
+  for (let i = 1; i <= WS_COUNT; i++) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    const special = i % 20 === 0;
+    b.className = 'lvl' + (i === ws.n ? ' current' : i <= (games.wsBest || 0) ? ' done' : '') + (special ? ' ws-mystery' : '');
+    b.disabled = i > open;
+    b.innerHTML = i > open ? LOCK_SVG : special ? `${i}<small>?</small>` : String(i);
+    b.setAttribute('aria-label', `Fase ${i}${special ? ', misteriosa' : ''}${i > open ? ', bloqueada' : ''}`);
+    b.addEventListener('click', () => { $('wsLevelsOverlay').hidden = true; wsStart(i); sfx.pick(); });
+    grid.appendChild(b);
+  }
+  $('wsLevelsOverlay').hidden = false;
+}
+function wsOpen() {
+  requestAnimationFrame(() => {
+    if (!ws.tubes.length) wsStart(Math.min(WS_COUNT, games.wsLevel || (games.wsBest || 0) + 1));
+    else { wsLayout(); wsHud(); }
+  });
+}
+new ResizeObserver(() => { if (state.screen === 'water') wsLayout(); }).observe($('wsStage'));
+
+// cup shape: a little neck on top, rounded bottom
+function wsCupPath(c, x, y) {
+  const w = ws.tw, h = ws.th, neck = w * 0.22, nh = w * 0.3, r = w * 0.42;
+  c.beginPath();
+  c.moveTo(x + neck, y);
+  c.lineTo(x + w - neck, y);
+  c.lineTo(x + w - neck, y + nh * 0.6);
+  c.quadraticCurveTo(x + w, y + nh * 0.7, x + w, y + nh * 1.3);
+  c.lineTo(x + w, y + h - r);
+  c.arcTo(x + w, y + h, x + w - r, y + h, r);
+  c.lineTo(x + r, y + h);
+  c.arcTo(x, y + h, x, y + h - r, r);
+  c.lineTo(x, y + nh * 1.3);
+  c.quadraticCurveTo(x, y + nh * 0.7, x + neck, y + nh * 0.6);
+  c.closePath();
+}
+function wsDrawCup(c, i, x, y, levels, time) {
+  const t = ws.tubes[i], hid = ws.hidden[i], lh = ws.lh, w = ws.tw, h = ws.th;
+  c.save();
+  wsCupPath(c, x, y);
+  c.fillStyle = 'rgba(255,255,255,.07)'; c.fill();
+  c.save(); c.clip();
+  // levels: [{color, hidden}] bottom to top, possibly with a fractional last one while pouring
+  let yy = y + h;
+  levels.forEach((lv, k) => {
+    const hh = lh * lv.amount;
+    c.fillStyle = lv.hidden ? '#2e3452' : WS_COLORS[lv.color];
+    c.fillRect(x, yy - hh, w, hh + 0.6);
+    if (!lv.hidden) { c.fillStyle = 'rgba(255,255,255,.13)'; c.fillRect(x + w * 0.12, yy - hh, w * 0.12, hh); }
+    if (lv.hidden && lv.amount > 0.6) {
+      c.fillStyle = 'rgba(255,255,255,.8)';
+      c.font = `700 ${Math.round(lh * 0.55)}px Fredoka, Nunito, system-ui, sans-serif`;
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('?', x + w / 2, yy - hh / 2);
+    }
+    yy -= hh;
+    if (k === levels.length - 1 && !lv.hidden) {
+      // a little wave on the surface
+      c.fillStyle = WS_COLORS[lv.color];
+      c.beginPath(); c.moveTo(x, yy + 1);
+      for (let s = 0; s <= 12; s++) c.lineTo(x + (w * s) / 12, yy - Math.sin(time * 4 + s * 0.9 + i) * lh * 0.04);
+      c.lineTo(x + w, yy + 2); c.closePath(); c.fill();
+    }
+  });
+  c.restore();
+  wsCupPath(c, x, y);
+  c.lineWidth = Math.max(2, w * 0.06); c.strokeStyle = 'rgba(235,240,255,.85)'; c.stroke();
+  c.fillStyle = 'rgba(255,255,255,.18)'; c.fillRect(x + w * 0.72, y + h * 0.25, w * 0.07, h * 0.5);
+  if (ws.done.has(i)) {
+    // finished: a cork and a little sparkle
+    c.fillStyle = '#c98a4b'; c.beginPath(); rr(x + w * 0.2, y - w * 0.18, w * 0.6, w * 0.3, w * 0.08); c.fill();
+    c.fillStyle = '#e8b27a'; c.fillRect(x + w * 0.24, y - w * 0.14, w * 0.52, w * 0.06);
+    const sp = 0.5 + 0.5 * Math.sin(time * 5 + i);
+    c.fillStyle = `rgba(255,255,255,${0.5 + 0.5 * sp})`;
+    mgStar(c, x + w * 0.85, y - w * 0.15, w * 0.12 * (0.7 + 0.3 * sp));
+  }
+  c.restore();
+}
+function wsLevels(i, removed, added, color) {
+  const t = ws.tubes[i], hid = ws.hidden[i], out = t.map((col, k) => ({ color: col, hidden: hid[k], amount: 1 }));
+  for (let k = 0; k < Math.floor(removed); k++) out.pop();
+  const frac = removed - Math.floor(removed);
+  if (frac > 0 && out.length) out[out.length - 1].amount = 1 - frac;
+  if (added > 0) {
+    const whole = Math.floor(added);
+    for (let k = 0; k < whole; k++) out.push({ color, hidden: false, amount: 1 });
+    if (added - whole > 0) out.push({ color, hidden: false, amount: added - whole });
+  }
+  return out;
+}
+function wsDraw(dt) {
+  if (!ws.w || !ws.tubes.length) return;
+  ws.t += dt;
+  const c = wsCtx, w = ws.tw;
+  c.setTransform(ws.dpr, 0, 0, ws.dpr, 0, 0);
+  c.clearRect(0, 0, ws.w, ws.h);
+  let a = ws.anim;
+  if (a) { a.t += dt / 0.75; if (a.t >= 1) { wsFinishPour(); a = null; } }
+  withCtx(c, () => {
+    ws.tubes.forEach((_, i) => {
+      if (a && i === a.from) return;
+      const p = ws.layout[i];
+      const lift = i === ws.sel ? w * 0.45 : 0;
+      const added = a && i === a.to ? a.amt * Math.max(0, Math.min(1, (a.t - 0.25) / 0.5)) : 0;
+      wsDrawCup(c, i, p.x, p.y - lift, wsLevels(i, 0, added, a ? a.color : 0), ws.t);
+    });
+    if (a) {
+      // the source cup flies over, tips and pours, then goes back
+      const P = ws.layout[a.from], T = ws.layout[a.to];
+      const side = T.x >= P.x ? -1 : 1;
+      const pourX = T.x + side * w * 0.9, pourY = T.y - ws.th * 0.55;
+      const go = a.t < 0.25 ? a.t / 0.25 : a.t > 0.75 ? 1 - (a.t - 0.75) / 0.25 : 1;
+      const ease = go * go * (3 - 2 * go);
+      const x = P.x + (pourX - P.x) * ease, y = P.y + (pourY - P.y) * ease;
+      const tilt = -side * ease * 1.15;
+      const pouring = Math.max(0, Math.min(1, (a.t - 0.25) / 0.5));
+      c.save();
+      c.translate(x + w / 2, y);
+      c.rotate(tilt);
+      c.translate(-(x + w / 2), -y);
+      wsDrawCup(c, a.from, x, y, wsLevels(a.from, a.amt * pouring, 0, 0), ws.t);
+      c.restore();
+      if (a.t > 0.25 && a.t < 0.78) {
+        // stream from the mouth down into the target cup
+        const mx = x + w / 2 + Math.sin(tilt) * 0 - side * w * 0.5 * ease, my = y + w * 0.1;
+        const topY = T.y + ws.th - ws.lh * (ws.tubes[a.to].length + a.amt * pouring);
+        c.fillStyle = WS_COLORS[a.color];
+        c.beginPath(); rr(Math.min(mx, T.x + w / 2) - w * 0.06, my, w * 0.12, Math.max(4, topY - my), w * 0.06); c.fill();
+      }
+    }
+  });
+}
+$('openWater').addEventListener('click', () => { sfx.pick(); showScreen('water'); });
+$('waterBack').addEventListener('click', () => { sfx.pick(); showScreen('more'); });
+
 loadGames();
 window.__mgBall = (c, b, x, y, r, lx, ly) => withCtx(c, () => mgBall(c, b, x, y, r, lx, ly));
 window.__pzDeal = pzDeal;
-window.__minigames = { ol, olLevel, olStart, mg, MG_TIERS, mgDrop, pz, games, pzReset, pzPlace, pzFits, ttt, tttRobotMove, tttWinner, PZ_THEMES };
+window.__minigames = { ws, wsStart, wsDecode, ol, olLevel, olStart, mg, MG_TIERS, mgDrop, pz, games, pzReset, pzPlace, pzFits, ttt, tttRobotMove, tttWinner, PZ_THEMES };
 
 /* ---------- Loading ---------- */
 function runLoading(done) {
@@ -5865,6 +6237,7 @@ function frame(ts) {
   if (state.screen === 'puzzle') { pzUpdate(dt); pzDraw(ts / 1000); }
   else if (state.screen === 'merge') { mgStep(dt); mgDraw(); }
   else if (state.screen === 'oneline') olDraw(dt);
+  else if (state.screen === 'water') wsDraw(dt);
   else if (state.level) { update(dt); draw(ts / 1000); }
   requestAnimationFrame(frame);
 }
@@ -5914,8 +6287,10 @@ window.blocksolveBack = () => {
   if (!$('pzOverOverlay').hidden) { $('pzOverOverlay').hidden = true; showScreen('more'); return true; }
   if (!$('mgOverOverlay').hidden) { $('mgOverOverlay').hidden = true; showScreen('more'); return true; }
   if (!$('olLevelsOverlay').hidden) { $('olLevelsOverlay').hidden = true; return true; }
+  if (!$('wsLevelsOverlay').hidden) { $('wsLevelsOverlay').hidden = true; return true; }
+  if (!$('wsWinOverlay').hidden) { $('wsWinOverlay').hidden = true; showScreen('more'); return true; }
   if (!$('olWinOverlay').hidden) { $('olWinOverlay').hidden = true; showScreen('more'); return true; }
-  if (state.screen === 'puzzle' || state.screen === 'ttt' || state.screen === 'merge' || state.screen === 'oneline') { showScreen('more'); return true; }
+  if (state.screen === 'puzzle' || state.screen === 'ttt' || state.screen === 'merge' || state.screen === 'oneline' || state.screen === 'water') { showScreen('more'); return true; }
   if (state.screen === 'more') { showScreen('home'); return true; }
   if (!$('introOverlay').hidden) { $('introBtn').click(); return true; }
   if (!$('winOverlay').hidden) { $('winOverlay').hidden = true; showScreen('levels'); return true; }

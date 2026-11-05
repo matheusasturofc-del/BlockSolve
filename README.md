@@ -63,6 +63,12 @@ Na tela inicial, o botão **Mais jogos** abre:
 - **Um Traço:** comece na bolinha e ligue todas as casas com um traço só, sem passar duas vezes. 100 fases, de 3×3 até
   7×8 cheias; cada fase é gerada a partir de um caminho que passa por todas as casas, então sempre tem solução. Tem dica
   (mostra os próximos passos certos), recomeçar, escolha de fase, e cada fase sorteia uma cor nova para o traço.
+- **Separa Cores:** toque num copinho e depois em outro para despejar a água de cima. Ela só cai em cima da mesma cor
+  ou num copinho vazio, e as cores nunca se misturam. O objetivo é deixar cada copinho com uma cor só. São 100 fases:
+  começam com 5 copinhos de 4 camadas e terminam com 14 copinhos de 5 camadas e 12 cores. A cada 20 fases (20, 40, 60, 80 e 100) vem uma
+  fase misteriosa: só a camada de cima aparece, e cada cor escondida se revela quando chega ao topo. Tem desfazer,
+  recomeçar e um copinho extra por fase para quando não houver mais jogadas. Um resolvedor testou todas as 100 fases,
+  e cada uma tem solução.
 - **Jogo da velha:** você contra o robô, em fácil, médio ou difícil. No difícil ele joga perfeito e nunca perde
   (verificado em todas as partidas possíveis). Vitórias dão moedas.
 
