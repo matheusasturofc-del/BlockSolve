@@ -3860,6 +3860,8 @@ function mgStep(dt) {
   const sub = 6, h = dt / sub, born = [];
   for (let s = 0; s < sub; s++) {
     for (const b of mg.balls) {
+      if (!Number.isFinite(b.w)) b.w = 0;
+      if (!Number.isFinite(b.ang)) b.ang = 0;
       b.vy += MG_G * h;
       b.vx *= 0.9995; b.vy *= 0.9995; b.w *= 0.9992;
       b.x += b.vx * h; b.y += b.vy * h; b.ang += b.w * h;
