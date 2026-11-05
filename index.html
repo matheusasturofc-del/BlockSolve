@@ -195,43 +195,6 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 }
 .dedication svg { width: 22px; height: 22px; fill: #ee5f8f; flex: none; animation: beat 1.6s ease-in-out infinite; }
 @keyframes beat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.18); } 30% { transform: scale(1); } }
-/* special 3.5 message (remove next update) */
-.farewell { background: rgba(255, 120, 160, .35); overflow: hidden; }
-.farewell-card { position: relative; z-index: 1; gap: 8px; }
-.farewell-card .plane { width: 74px; height: 74px; animation: fly 2.4s ease-in-out infinite; }
-.farewell-card h2 { font-size: 2.1rem; color: #d6336c; }
-.farewell-body { font-weight: 800; font-size: 1.15rem; color: var(--ink); text-wrap: balance; }
-.farewell-big {
-  font-family: var(--font-display); font-weight: 700; font-size: 1.8rem; letter-spacing: .04em;
-  background: linear-gradient(90deg, #ee4d4d, #f5892c, #e0a800, #2fbf71, #2f86e8, #8a5cf0);
-  -webkit-background-clip: text; background-clip: text; color: transparent;
-}
-.cta.love {
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  background: #ee5f8f; color: #ffffff; box-shadow: 0 5px 0 #b8336a; font-size: 1.5rem;
-}
-.cta.love:active { box-shadow: 0 1px 0 #b8336a; }
-.cta.love svg { width: 26px; height: 26px; animation: beat 1.2s ease-in-out infinite; }
-.hearts { position: absolute; inset: 0; pointer-events: none; }
-.hearts i {
-  position: absolute; bottom: -40px; width: 22px; height: 22px; background: #ff6f9c; opacity: .8;
-  transform: rotate(45deg); animation: rise-heart 6s linear infinite;
-}
-.hearts i::before, .hearts i::after { content: ""; position: absolute; width: 22px; height: 22px; border-radius: 50%; background: inherit; }
-.hearts i::before { left: -11px; } .hearts i::after { top: -11px; }
-.hearts i:nth-child(1) { left: 6%; animation-delay: 0s; }
-.hearts i:nth-child(2) { left: 18%; animation-delay: 1.2s; background: #ff9ec0; }
-.hearts i:nth-child(3) { left: 30%; animation-delay: 2.6s; }
-.hearts i:nth-child(4) { left: 42%; animation-delay: .6s; background: #ffc2d6; }
-.hearts i:nth-child(5) { left: 54%; animation-delay: 3.4s; }
-.hearts i:nth-child(6) { left: 66%; animation-delay: 1.8s; background: #ff9ec0; }
-.hearts i:nth-child(7) { left: 78%; animation-delay: 4.2s; }
-.hearts i:nth-child(8) { left: 90%; animation-delay: 2.2s; background: #ffc2d6; }
-.hearts i:nth-child(9) { left: 12%; animation-delay: 4.8s; }
-.hearts i:nth-child(10) { left: 84%; animation-delay: 5.4s; background: #ff9ec0; }
-@keyframes rise-heart { from { transform: translateY(0) rotate(45deg) scale(.7); opacity: .9; } to { transform: translateY(-115vh) rotate(45deg) scale(1.1); opacity: 0; } }
-@keyframes fly { 0%, 100% { transform: translate(0, 0) rotate(-4deg); } 50% { transform: translate(6px, -8px) rotate(4deg); } }
-@media (prefers-reduced-motion: reduce) { .hearts { display: none; } .farewell-card .plane, .cta.love svg { animation: none; } }
 .news-card { max-height: min(86vh, 640px); }
 .news-card h2 { font-size: 1.7rem; }
 .news-list { align-self: stretch; overflow-y: auto; text-align: left; display: flex; flex-direction: column; gap: 14px; padding-right: 4px; }
@@ -635,26 +598,6 @@ body[data-bg="sketch"] {
     <p class="reward"><span class="coin"></span><span id="mgOverReward">+0</span></p>
     <button class="cta" id="mgAgain" type="button">Jogar de novo</button>
     <button class="cta quiet" id="mgOverBack" type="button">Voltar</button>
-  </div>
-</div>
-
-<!-- Special message for version 3.5 only. Remove it (markup, CSS and openFarewell) in the next update. -->
-<div class="overlay farewell" id="farewellOverlay" hidden>
-  <div class="hearts" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-  <div class="card farewell-card" role="dialog" aria-modal="true" aria-labelledby="farewellTitle">
-    <svg class="plane" viewBox="0 0 64 64" aria-hidden="true">
-      <path d="M58 8 6 30l18 6 4 18 9-12 13 9z" fill="#4aa8ff"/>
-      <path d="M58 8 24 36l4 18 4-11z" fill="#2a78c8"/>
-      <path d="M58 8 24 36l26 15z" fill="#7cc4ff"/>
-    </svg>
-    <span class="eyebrow">Mensagem especial</span>
-    <h2 id="farewellTitle">BOA VIAGEM, IRMÃ!</h2>
-    <p class="farewell-body">Te amo muuuuuito e que dê tudo certo!!!</p>
-    <p class="farewell-big">BOA VIAGEM</p>
-    <button class="cta love" id="farewellOk" type="button">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.3C.9 8.3 3 4.5 6.7 4.5c2.1 0 3.6 1.1 4.4 2.6.8-1.5 2.3-2.6 4.4-2.6 3.7 0 5.8 3.8 4.3 7.2C19.5 16.4 12 21 12 21z" fill="currentColor"/></svg>
-      TE AMO
-    </button>
   </div>
 </div>
 
@@ -1947,8 +1890,12 @@ const WORLDS = [
   { from: 276, name: 'Espelho' },
 ];
 const COIN_CELL = 5;
-const APP_VERSION = '3.5';
+const APP_VERSION = '3.6';
 const CHANGELOG = [
+  { v: '3.6', items: [
+    'Os bichinhos do Junta-Junta agora rolam de verdade: giram ao cair, rolam pelo chão e descem de cima dos outros.',
+    'A carinha gira junto com a bolinha, e quem roda rápido demais fica tonto.',
+  ] },
   { v: '3.5', items: [
     'Uma mensagem especial de boa viagem para a irmã.',
     'Correção: o Junta-Junta ficava com zoom grande demais em celulares com tela de alta definição.',
@@ -3085,19 +3032,6 @@ function shopAction(kind, item) {
 $('tabBg').addEventListener('click', () => { shopTab = 'bg'; sfx.pick(); renderShop(); });
 $('tabPiece').addEventListener('click', () => { shopTab = 'piece'; sfx.pick(); renderShop(); });
 
-/* ---------- Special 3.5 message (remove in the next update) ---------- */
-function openFarewell() {
-  $('farewellOverlay').hidden = false;
-  $('farewellOk').focus({ preventScroll: true });
-}
-$('farewellOk').addEventListener('click', () => {
-  audio();
-  [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.2, 'triangle', 0.12, null, i * 0.08));
-  buzz([30, 40, 30]);
-  $('farewellOverlay').hidden = true;
-  state.lastVersion = APP_VERSION; save();
-});
-
 /* ---------- What's new ---------- */
 function openNews(all) {
   const list = $('newsList');
@@ -3852,13 +3786,14 @@ function mgHud() {
   mgChain();
 }
 function mgNewBall(tier, x, y, vx = 0, vy = 0) {
-  return { id: mg.seq++, tier, r: MG_TIERS[tier].r, x, y, vx, vy, age: 0, mood: null, moodT: 0, blink: 1 + Math.random() * 3,
+  return { id: mg.seq++, tier, r: MG_TIERS[tier].r, x, y, vx, vy, ang: 0, w: 0, age: 0, mood: null, moodT: 0, blink: 1 + Math.random() * 3,
     squash: 0, still: 0, contact: false, grow: 1, dead: false, zT: 0 };
 }
 function mgDrop() {
   if (mg.over || mg.cool > 0) return;
   const t = mg.cur, r = MG_TIERS[t].r;
-  const b = mgNewBall(t, Math.max(r, Math.min(1 - r, mg.aimX)), MG_HANG, 0, 0.3);
+  const b = mgNewBall(t, Math.max(r, Math.min(1 - r, mg.aimX)), MG_HANG, (Math.random() - 0.5) * 0.06, 0.3);
+  b.w = (Math.random() - 0.5) * 2;
   b.mood = 'surprised'; b.moodT = 0.5;
   mg.balls.push(b);
   mg.cur = mg.queue.shift(); mg.queue.push(mgRandTier()); mg.next = mg.queue[0];
@@ -3902,6 +3837,7 @@ function mgMerge(a, b, born) {
     return;
   }
   const nb = mgNewBall(t + 1, mx, my, (a.vx + b.vx) / 2, (a.vy + b.vy) / 2 - 0.35);
+  nb.ang = (a.ang + b.ang) / 2; nb.w = (a.w + b.w) / 2;
   nb.grow = 0.55; nb.mood = 'happy'; nb.moodT = 1.2;
   born.push(nb);
   const pts = (t + 2) * (t + 3);
@@ -3925,19 +3861,25 @@ function mgStep(dt) {
   for (let s = 0; s < sub; s++) {
     for (const b of mg.balls) {
       b.vy += MG_G * h;
-      b.vx *= 0.9995; b.vy *= 0.9995;
-      b.x += b.vx * h; b.y += b.vy * h;
+      b.vx *= 0.9995; b.vy *= 0.9995; b.w *= 0.9992;
+      b.x += b.vx * h; b.y += b.vy * h; b.ang += b.w * h;
       b.contact = false;
     }
     for (let it = 0; it < 2; it++) {
       for (const b of mg.balls) {
         if (b.dead) continue;
-        if (b.x - b.r < 0) { b.x = b.r; if (b.vx < 0) b.vx = -b.vx * 0.3; }
-        if (b.x + b.r > 1) { b.x = 1 - b.r; if (b.vx > 0) b.vx = -b.vx * 0.3; }
+        // walls are a little slippery; they turn sliding into a bit of spin
+        if (b.x - b.r < 0) { b.x = b.r; if (b.vx < 0) b.vx = -b.vx * 0.3; const slip = b.vy - b.w * b.r; b.vy -= slip * 0.1; b.w += slip * 0.2 / b.r; }
+        if (b.x + b.r > 1) { b.x = 1 - b.r; if (b.vx > 0) b.vx = -b.vx * 0.3; const slip = b.vy + b.w * b.r; b.vy -= slip * 0.1; b.w -= slip * 0.2 / b.r; }
         if (b.y + b.r > MG_H) {
           b.y = MG_H - b.r;
           if (b.vy > 0) { if (b.vy > 1.4) b.squash = Math.min(0.22, b.squash + b.vy * 0.05); b.vy = -b.vy * 0.2; }
-          b.vx *= 0.985; b.contact = true;
+          // floor grip: sliding becomes rolling (a solid disc ends up with vx = w * r)
+          const slip = b.vx - b.w * b.r;
+          b.vx -= slip / 3; b.w += (2 * slip) / (3 * b.r);
+          // gentle rolling resistance so they still come to rest
+          b.vx *= 0.9993; b.w *= 0.9993;
+          b.contact = true;
         }
       }
       for (let i = 0; i < mg.balls.length; i++) {
@@ -3957,9 +3899,18 @@ function mgStep(dt) {
           if (vn < 0) {
             const jn = -(1 + 0.12) * vn / (1 / ma + 1 / mb);
             a.vx -= jn * nx / ma; a.vy -= jn * ny / ma; b.vx += jn * nx / mb; b.vy += jn * ny / mb;
-            const tx = -ny, ty = nx, vt = rvx * tx + rvy * ty, jt = -vt * 0.06 / (1 / ma + 1 / mb);
-            a.vx -= jt * tx / ma; a.vy -= jt * ty / ma; b.vx += jt * tx / mb; b.vy += jt * ty / mb;
             if (-vn > 0.5) mgBump(a, b, -vn);
+          }
+          // friction at the contact point, including spin, so balls roll over each other
+          {
+            const tx = -ny, ty = nx;
+            const vt = (b.vx - a.vx) * tx + (b.vy - a.vy) * ty - a.w * a.r - b.w * b.r;
+            const Ia = 0.5 * ma * a.r * a.r, Ib = 0.5 * mb * b.r * b.r;
+            let jt = -vt / (1 / ma + 1 / mb + a.r * a.r / Ia + b.r * b.r / Ib) * 0.5;
+            const cap = 0.35 * Math.max(0, over) * (ma + mb) * 40 + 0.35 * Math.abs(vn < 0 ? -vn : 0) * (ma * mb) / (ma + mb);
+            jt = Math.max(-cap, Math.min(cap, jt));
+            a.vx -= jt * tx / ma; a.vy -= jt * ty / ma; b.vx += jt * tx / mb; b.vy += jt * ty / mb;
+            a.w -= jt * a.r / Ia; b.w -= jt * b.r / Ib;
           }
           a.contact = b.contact = true;
         }
@@ -3976,7 +3927,10 @@ function mgStep(dt) {
     if (b.moodT > 0) { b.moodT -= dt; if (b.moodT <= 0) b.mood = null; }
     b.blink -= dt; if (b.blink < -0.12) b.blink = 1.5 + Math.random() * 3.5;
     const speed = Math.hypot(b.vx, b.vy);
-    b.still = speed < 0.04 ? b.still + dt : 0;
+    b.still = speed < 0.04 && Math.abs(b.w) < 0.4 ? b.still + dt : 0;
+    if (Math.abs(b.w) > 15 && b.mood !== 'happy') { b.mood = 'dizzy'; b.moodT = 0.9; }
+    // once it has nearly stopped moving, let the spin die out too
+    if (speed < 0.05) b.w *= Math.pow(0.08, dt);
     if (b.still > 8 && !b.mood) { b.zT -= dt; if (b.zT <= 0) { b.zT = 1.6; mg.pops.push({ text: 'z', x: b.x + b.r * 0.6, y: b.y - b.r, t: 0, color: '#6a4b80', small: true }); } }
     if (b.age > 1.2 && b.y - b.r < MG_DANGER) danger = true;
   }
@@ -4016,10 +3970,13 @@ function mgBall(c, b, x, y, r, lookX, lookY) {
   const sq = b.squash || 0;
   c.scale(1 + sq * 0.7, 1 - sq);
   c.translate(0, -r);
+  const ang = b.ang || 0;
   // planet ring, back half
   if (t.face === 'planet') {
+    c.save(); c.rotate(ang);
     c.strokeStyle = '#ffe6a8'; c.lineWidth = r * 0.12;
     c.beginPath(); c.ellipse(0, r * 0.05, r * 1.45, r * 0.38, -0.25, Math.PI, Math.PI * 2); c.stroke();
+    c.restore();
   }
   const g = c.createRadialGradient(-r * 0.3, -r * 0.38, r * 0.05, 0, 0, r * 1.05);
   g.addColorStop(0, 'rgba(255,255,255,.95)'); g.addColorStop(0.08, t.color); g.addColorStop(0.75, t.color); g.addColorStop(1, t.dark);
@@ -4027,6 +3984,8 @@ function mgBall(c, b, x, y, r, lookX, lookY) {
   c.beginPath(); c.arc(0, 0, r, 0, Math.PI * 2); c.fill();
   c.strokeStyle = 'rgba(120,60,40,.18)'; c.lineWidth = Math.max(1, r * 0.04);
   c.beginPath(); c.arc(0, 0, r - c.lineWidth / 2, 0, Math.PI * 2); c.stroke();
+  // the light stays put; everything painted on the ball turns as it rolls
+  c.save(); c.rotate(ang);
   if (t.face === 'moon') {
     c.fillStyle = 'rgba(120,128,150,.35)';
     for (const [cx, cy, cr] of [[-0.45, -0.35, 0.16], [0.5, 0.3, 0.12], [-0.25, 0.55, 0.1], [0.55, -0.45, 0.08]]) { c.beginPath(); c.arc(cx * r, cy * r, cr * r, 0, Math.PI * 2); c.fill(); }
@@ -4037,8 +3996,6 @@ function mgBall(c, b, x, y, r, lookX, lookY) {
     for (const yy of [-0.55, -0.1, 0.4]) c.fillRect(-r, yy * r, r * 2, r * 0.14);
     c.restore();
   }
-  c.fillStyle = 'rgba(255,255,255,.4)';
-  c.beginPath(); c.ellipse(-r * 0.36, -r * 0.52, r * 0.17, r * 0.09, -0.6, 0, Math.PI * 2); c.fill();
   if (t.face === 'sprout') {
     c.fillStyle = '#2f9e60'; c.strokeStyle = '#2f9e60'; c.lineWidth = r * 0.08;
     c.beginPath(); c.moveTo(0, -r * 0.95); c.lineTo(0, -r * 1.25); c.stroke();
@@ -4047,7 +4004,9 @@ function mgBall(c, b, x, y, r, lookX, lookY) {
   // face
   const mood = b.mood, blink = b.blink !== undefined && b.blink < 0;
   const ex = r * 0.3, ey = 0, er = Math.max(1.2, r * 0.12);
-  const lx = Math.max(-1, Math.min(1, lookX || 0)) * er * 0.4, ly = Math.max(-1, Math.min(1, lookY || 0)) * er * 0.4;
+  // eyes keep looking at the aimed ball even while the face is upside down
+  const lxw = Math.max(-1, Math.min(1, lookX || 0)), lyw = Math.max(-1, Math.min(1, lookY || 0));
+  const lx = (lxw * Math.cos(-ang) - lyw * Math.sin(-ang)) * er * 0.4, ly = (lxw * Math.sin(-ang) + lyw * Math.cos(-ang)) * er * 0.4;
   c.lineCap = 'round'; c.lineJoin = 'round';
   c.strokeStyle = ink; c.fillStyle = ink; c.lineWidth = Math.max(1, r * 0.07);
   // cheeks
@@ -4062,7 +4021,18 @@ function mgBall(c, b, x, y, r, lookX, lookY) {
   };
   const closedEye = (cx, up) => { c.beginPath(); if (up) c.arc(cx, ey + er * 0.4, er * 0.75, Math.PI * 1.15, Math.PI * 1.85); else { c.moveTo(cx - er * 0.8, ey); c.lineTo(cx + er * 0.8, ey); } c.stroke(); };
   const sunglasses = t.face === 'cool';
-  if (mood === 'grumpy') {
+  if (mood === 'dizzy') {
+    // spiral eyes and a wobbly mouth
+    c.lineWidth = Math.max(1, r * 0.05);
+    for (const sgn of [-1, 1]) {
+      c.beginPath();
+      for (let k = 0; k <= 24; k++) { const a = k * 0.55, rad = er * 0.08 * k * 0.55; c.lineTo(sgn * ex + Math.cos(a) * rad, ey + Math.sin(a) * rad); }
+      c.stroke();
+    }
+    c.beginPath(); c.moveTo(-r * 0.2, r * 0.38);
+    for (let k = 1; k <= 4; k++) c.quadraticCurveTo(-r * 0.2 + (k - 0.5) * r * 0.1, r * (k % 2 ? 0.3 : 0.46), -r * 0.2 + k * r * 0.1, r * 0.38);
+    c.stroke();
+  } else if (mood === 'grumpy') {
     if (!sunglasses) for (const sgn of [-1, 1]) { c.beginPath(); c.arc(sgn * ex, ey + er * 0.2, er * 0.55, 0, Math.PI * 2); c.fill(); }
     c.lineWidth = Math.max(1.2, r * 0.08);
     for (const sgn of [-1, 1]) { c.beginPath(); c.moveTo(sgn * ex - sgn * er * 1.1, ey - er * 1.5); c.lineTo(sgn * ex + sgn * er * 0.9, ey - er * 0.8); c.stroke(); }
@@ -4123,6 +4093,10 @@ function mgBall(c, b, x, y, r, lookX, lookY) {
     c.strokeStyle = '#ffe6a8'; c.lineWidth = r * 0.12;
     c.beginPath(); c.ellipse(0, r * 0.05, r * 1.45, r * 0.38, -0.25, 0, Math.PI); c.stroke();
   }
+  c.restore();
+  // shine on top, not turning
+  c.fillStyle = 'rgba(255,255,255,.4)';
+  c.beginPath(); c.ellipse(-r * 0.36, -r * 0.52, r * 0.17, r * 0.09, -0.6, 0, Math.PI * 2); c.fill();
   c.restore();
 }
 function mgLayout() {
@@ -5493,9 +5467,7 @@ function start(data) {
   }
   runLoading(() => {
     showScreen(data && SCREENS[data.screen] && data.screen !== 'loading' ? data.screen : 'home');
-    if (state.lastVersion !== APP_VERSION) {
-      if (APP_VERSION === '3.5') openFarewell(); else openNews(false);
-    }
+    if (state.lastVersion !== APP_VERSION) openNews(false);
   });
 }
 window.claude?.hot?.snapshot?.(() => ({ n: state.n, best: state.best, coins: state.coins, sound: state.sound, screen: state.screen }));
@@ -5503,7 +5475,6 @@ window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude
 
 // Android back button (called by the APK wrapper). Returns true when the game handled it.
 window.blocksolveBack = () => {
-  if (!$('farewellOverlay').hidden) { $('farewellOk').click(); return true; }
   if (!$('newsOverlay').hidden) { $('newsOk').click(); return true; }
   if (!$('pzOverOverlay').hidden) { $('pzOverOverlay').hidden = true; showScreen('more'); return true; }
   if (!$('mgOverOverlay').hidden) { $('mgOverOverlay').hidden = true; showScreen('more'); return true; }
