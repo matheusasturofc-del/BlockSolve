@@ -4817,8 +4817,9 @@ function wsLayout() {
 // the extra cup is short (one layer), so every cup gets its own height and sits on the row's floor
 const wsCupH = i => ws.caps[i] * ws.lh + ws.tw * 0.55;
 const wsCupY = i => ws.layout[i].y + ws.th - wsCupH(i);
-// a pour waits for its turn while an earlier pour still uses one of its cups
-const wsShares = (a, b) => a.from === b.from || a.from === b.to || a.to === b.from || a.to === b.to;
+// a pour waits for its turn while an earlier pour still uses one of its cups; several cups may
+// pour into the same cup at once, though
+const wsShares = (a, b) => a.from === b.from || a.from === b.to || a.to === b.from;
 const wsFlying = i => ws.anims.some(a => a.active && a.from === i);
 function wsRun(i) {
   const t = ws.tubes[i], h = ws.hidden[i];
@@ -4888,7 +4889,11 @@ function wsPour(from, to, amt) {
 function wsAnimEnd(a) {
   if (a.revealIdx >= 0) { ws.reveal[a.from] = { idx: a.revealIdx, t: ws.t }; tone(660, 0.1, 'triangle', 0.06); }
   ws.lift[a.from] = 0; ws.slosh[a.from] = 0.9;
-  if (a.completes && ws.done.has(a.to)) { ws.cork[a.to] = ws.t; ws.burst[a.to] = false; }
+  if (a.completes && ws.done.has(a.to)) {
+    // the cork waits for every pour still going into this cup
+    const still = ws.anims.find(b => b.to === a.to);
+    if (still) still.completes = true; else { ws.cork[a.to] = ws.t; ws.burst[a.to] = false; }
+  }
   if (ws.anims.length) return;
   if (ws.tubes.every(t => !t.length || wsComplete(t))) return wsWin();
   if (!wsAnyMove() && !ws.stuckWarned) {
@@ -4990,17 +4995,17 @@ function wsTilt(i, layers) { const s = layers * ws.lh; return Math.max(0.55, Mat
 // Pose of a pouring cup: its lip moves over the target, tips just enough to pour, and comes back.
 function wsPose(a) {
   const w = ws.tw, neck = w * 0.22, P = ws.layout[a.from], T = ws.layout[a.to];
-  const dir = T.x >= P.x ? 1 : -1;
+  const dir = a.dir || (T.x >= P.x ? 1 : -1), flip = dir !== (T.x >= P.x ? 1 : -1);
   const Lx = dir > 0 ? w - neck : neck;
   const restY = wsCupY(a.from);
-  const pourX = T.x + w / 2 - dir * w * 0.1, pourY = wsCupY(a.to) - w * 0.45;
+  const pourX = T.x + w / 2 - dir * w * 0.1, pourY = wsCupY(a.to) - w * (0.45 + 1.15 * (a.stack || 0));
   const tp = wsPourTime(a), before = a.srcBefore;
   const t0 = wsTilt(a.from, before), t1 = wsTilt(a.from, before - a.amt);
   let lx, ly, ang, p = 0, pouring = false;
   if (a.t < WS_MOVE) {
     const u = wsEase(a.t / WS_MOVE);
     lx = P.x + Lx + (pourX - P.x - Lx) * u;
-    ly = restY - a.lift + (pourY - restY + a.lift) * u - Math.sin(Math.PI * u) * w * 0.35;
+    ly = restY - a.lift + (pourY - restY + a.lift) * u - Math.sin(Math.PI * u) * w * (flip ? 1.4 : 0.35);
     ang = t0 * wsEase(Math.min(1, a.t / WS_MOVE * 1.1));
   } else if (a.t < WS_MOVE + tp) {
     p = (a.t - WS_MOVE) / tp; pouring = true;
@@ -5014,6 +5019,19 @@ function wsPose(a) {
     ang = t1 * (1 - u);
   }
   return { lx, ly, Lx, ang: ang * dir, p, pouring, dir };
+}
+// When another cup is already pouring into the same cup, come in from the free side if there is
+// room for the tipped cup there; otherwise pour from a bit higher up, above the other one.
+function wsPickSide(a) {
+  const others = ws.anims.filter(b => b !== a && b.active && b.to === a.to);
+  a.dir = 0; a.stack = 0;
+  if (!others.length) return;
+  const w = ws.tw, P = ws.layout[a.from], T = ws.layout[a.to];
+  const natural = T.x >= P.x ? 1 : -1, used = others.map(b => b.dir || (T.x >= ws.layout[b.from].x ? 1 : -1));
+  const room = d => { const lx = T.x + w / 2 - d * w * 0.1, reach = wsCupH(a.from) * 0.95 + w * 0.3; return d > 0 ? lx - reach > 0 : lx + reach < ws.w; };
+  if (!used.includes(natural)) a.dir = natural;
+  else if (!used.includes(-natural) && room(-natural)) a.dir = -natural;
+  else { a.dir = natural; a.stack = used.filter(d => d === natural).length; }
 }
 // cup shape: a little neck on top, rounded bottom
 function wsCupPath(c, x, y, h) {
@@ -5167,6 +5185,7 @@ function wsDraw(dt) {
     if (!a.active) {
       if (ws.anims.slice(0, k).some(b => wsShares(a, b))) continue;
       a.active = true; a.lift = ws.lift[a.from] || 0;
+      wsPickSide(a);
       if (ws.sel === a.from) ws.sel = -1;
     }
     a.t += dt * speed;
@@ -5210,7 +5229,7 @@ function wsDraw(dt) {
     for (const { a, pose } of poses) {
       if (pose.pouring) {
         // the stream: thin at the start and end, a little wobble, splashes where it lands
-        const surf = wsCupY(a.to) + wsCupH(a.to) - ws.lh * (a.landLen + a.amt * pose.p);
+        const surf = wsCupY(a.to) + wsCupH(a.to) - ws.lh * wsLevels(a.to).reduce((sum, lv) => sum + lv.amount, 0);
         const env = Math.min(1, pose.p * 7, (1 - pose.p) * 7);
         const sw = w * 0.14 * (0.35 + 0.65 * env);
         const x0 = pose.lx, y0 = pose.ly + w * 0.02;
