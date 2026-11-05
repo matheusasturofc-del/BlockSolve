@@ -2065,8 +2065,12 @@ const WORLDS = [
   { from: 276, name: 'Espelho' },
 ];
 const COIN_CELL = 5;
-const APP_VERSION = '4.0';
+const APP_VERSION = '4.1';
 const CHANGELOG = [
+  { v: '4.1', items: [
+    'Separa Cores: agora dá para erguer outro copinho enquanto um ainda está despejando, até o que está despejando ou o que está enchendo.',
+    'Um despejo que usa um copinho ainda em movimento espera a vez e começa sozinho. Com muitos toques rápidos, as animações aceleram.',
+  ] },
   { v: '4.0', items: [
     'Separa Cores: animações novas. O copinho voa, inclina e despeja num jato, a água fica sempre reta, e dá para fazer dois despejos ao mesmo tempo.',
     'Quando um copinho fica completo, a rolha cai girando, quica e solta confete.',
@@ -4813,7 +4817,9 @@ function wsLayout() {
 // the extra cup is short (one layer), so every cup gets its own height and sits on the row's floor
 const wsCupH = i => ws.caps[i] * ws.lh + ws.tw * 0.55;
 const wsCupY = i => ws.layout[i].y + ws.th - wsCupH(i);
-const wsBusy = i => ws.anims.some(a => a.from === i || a.to === i);
+// a pour waits for its turn while an earlier pour still uses one of its cups
+const wsShares = (a, b) => a.from === b.from || a.from === b.to || a.to === b.from || a.to === b.to;
+const wsFlying = i => ws.anims.some(a => a.active && a.from === i);
 function wsRun(i) {
   const t = ws.tubes[i], h = ws.hidden[i];
   if (!t.length || h[t.length - 1]) return 0;
@@ -4822,7 +4828,7 @@ function wsRun(i) {
   return k;
 }
 function wsCanPour(i, j) {
-  if (i === j || ws.done.has(i) || wsBusy(i) || wsBusy(j)) return 0;
+  if (i === j || ws.done.has(i)) return 0;
   const a = ws.tubes[i], b = ws.tubes[j];
   if (!a.length || b.length >= ws.caps[j]) return 0;
   if (b.length && wsTop(b) !== wsTop(a)) return 0;
@@ -4848,12 +4854,10 @@ wsCanvas.addEventListener('pointerdown', e => {
   audio();
   if (i < 0) { ws.sel = -1; return; }
   if (ws.sel < 0) {
-    if (wsBusy(i)) return;
     if (!ws.tubes[i].length || ws.done.has(i)) { ws.shake[i] = ws.t; sfx.bump(); return; }
     ws.sel = i; tone(520, 0.06, 'sine', 0.08); return;
   }
   if (ws.sel === i) { ws.sel = -1; tone(360, 0.05, 'sine', 0.06); return; }
-  if (wsBusy(i)) return;
   const amt = wsCanPour(ws.sel, i);
   if (!amt) {
     // tapping another cup that can be lifted switches the selection
@@ -4865,22 +4869,24 @@ wsCanvas.addEventListener('pointerdown', e => {
   ws.sel = -1;
   wsHud();
 });
-// The move is applied to the data at once (so several pours can run side by side);
-// the animation only decides what the player sees while it plays.
+// The move is applied to the data at once, so any cup can be picked up again right away, even one
+// that is still pouring or being filled; the animations only decide what the player sees, and a
+// pour that touches a cup still in motion waits for it.
 function wsPour(from, to, amt) {
   ws.undo.push({ tubes: ws.tubes.map(t => t.slice()), hidden: ws.hidden.map(h => h.slice()), done: [...ws.done] });
-  const color = wsTop(ws.tubes[from]);
+  const color = wsTop(ws.tubes[from]), srcBefore = ws.tubes[from].length;
   for (let k = 0; k < amt; k++) { ws.tubes[to].push(ws.tubes[from].pop()); ws.hidden[to].push(false); ws.hidden[from].pop(); }
   const f = ws.tubes[from], hf = ws.hidden[from];
   const revealIdx = f.length && hf[f.length - 1] ? f.length - 1 : -1;
+  // the layer underneath is known to the game at once, but it stays a mystery on screen until the pour ends
+  if (revealIdx >= 0) hf[revealIdx] = false;
   const completes = wsComplete(ws.tubes[to]) && !ws.done.has(to);
   if (completes) ws.done.add(to);
-  ws.anims.push({ from, to, amt, color, t: 0, revealIdx, completes, lift: ws.lift[from] || 0, landLen: ws.tubes[to].length - amt });
+  ws.anims.push({ from, to, amt, color, t: 0, p: 0, active: false, revealIdx, completes, lift: 0, srcBefore, landLen: ws.tubes[to].length - amt });
   tone(300, 0.08, 'sine', 0.05, 420);
 }
 function wsAnimEnd(a) {
-  const h = ws.hidden[a.from];
-  if (a.revealIdx >= 0 && h[a.revealIdx]) { h[a.revealIdx] = false; ws.reveal[a.from] = { idx: a.revealIdx, t: ws.t }; tone(660, 0.1, 'triangle', 0.06); }
+  if (a.revealIdx >= 0) { ws.reveal[a.from] = { idx: a.revealIdx, t: ws.t }; tone(660, 0.1, 'triangle', 0.06); }
   ws.lift[a.from] = 0; ws.slosh[a.from] = 0.9;
   if (a.completes && ws.done.has(a.to)) { ws.cork[a.to] = ws.t; ws.burst[a.to] = false; }
   if (ws.anims.length) return;
@@ -4988,7 +4994,7 @@ function wsPose(a) {
   const Lx = dir > 0 ? w - neck : neck;
   const restY = wsCupY(a.from);
   const pourX = T.x + w / 2 - dir * w * 0.1, pourY = wsCupY(a.to) - w * 0.45;
-  const tp = wsPourTime(a), before = ws.tubes[a.from].length + a.amt;
+  const tp = wsPourTime(a), before = a.srcBefore;
   const t0 = wsTilt(a.from, before), t1 = wsTilt(a.from, before - a.amt);
   let lx, ly, ang, p = 0, pouring = false;
   if (a.t < WS_MOVE) {
@@ -5025,16 +5031,27 @@ function wsCupPath(c, x, y, h) {
   c.quadraticCurveTo(x, y + nh * 0.7, x + neck, y + nh * 0.6);
   c.closePath();
 }
-// levels: [{color, amount, mask}] bottom to top; mask 1 = still a mystery
-function wsLevels(i, removed, added, color) {
+// levels: [{color, amount, mask}] bottom to top; mask 1 = still a mystery.
+// Starts from the real contents and winds back every pour that has not finished on screen yet.
+function wsLevels(i) {
   const t = ws.tubes[i], hid = ws.hidden[i], rv = ws.reveal[i];
-  const out = t.map((col, k) => ({ color: col, amount: 1, mask: hid[k] ? 1 : rv && rv.idx === k ? Math.max(0, 1 - (ws.t - rv.t) / 0.45) : 0 }));
-  let left = removed;
-  while (left > 0 && out.length) { const top = out[out.length - 1], take = Math.min(left, top.amount); top.amount -= take; left -= take; if (top.amount <= 1e-4) out.pop(); }
-  if (added > 0) {
-    const whole = Math.floor(added);
-    for (let k = 0; k < whole; k++) out.push({ color, amount: 1, mask: 0 });
-    if (added - whole > 1e-4) out.push({ color, amount: added - whole, mask: 0 });
+  const secret = new Set(ws.anims.filter(a => a.from === i && a.revealIdx >= 0).map(a => a.revealIdx));
+  const out = t.map((col, k) => ({ color: col, amount: 1,
+    mask: hid[k] || secret.has(k) ? 1 : rv && rv.idx === k ? Math.max(0, 1 - (ws.t - rv.t) / 0.45) : 0 }));
+  for (let n = ws.anims.length - 1; n >= 0; n--) {
+    const a = ws.anims[n], left = a.amt * (1 - a.p);
+    if (left <= 1e-4) continue;
+    if (a.to === i) {
+      let r = left;
+      while (r > 1e-4 && out.length) { const top = out[out.length - 1], take = Math.min(r, top.amount); top.amount -= take; r -= take; if (top.amount <= 1e-4) out.pop(); }
+    }
+    if (a.from === i) {
+      let r = left;
+      const top = out[out.length - 1];
+      if (top && top.color === a.color && top.amount < 1 - 1e-4 && !top.mask) { const fill = Math.min(r, 1 - top.amount); top.amount += fill; r -= fill; }
+      // a layer that an earlier, still running pour uncovered stays hidden here too
+      while (r > 1e-4) { const add = Math.min(1, r); out.push({ color: a.color, amount: add, mask: secret.has(out.length) ? 1 : 0 }); r -= add; }
+    }
   }
   return out;
 }
@@ -5142,15 +5159,24 @@ function wsDraw(dt) {
   const c = wsCtx, w = ws.tw;
   c.setTransform(ws.dpr, 0, 0, ws.dpr, 0, 0);
   c.clearRect(0, 0, ws.w, ws.h);
+  // when pours pile up (fast tapping), everything plays a bit quicker so the screen keeps up
+  const waiting = ws.anims.filter(a => !a.active).length;
+  const speed = Math.min(3, 1 + waiting * 0.5);
   for (const a of ws.anims.slice()) {
-    a.t += dt;
+    const k = ws.anims.indexOf(a);
+    if (!a.active) {
+      if (ws.anims.slice(0, k).some(b => wsShares(a, b))) continue;
+      a.active = true; a.lift = ws.lift[a.from] || 0;
+      if (ws.sel === a.from) ws.sel = -1;
+    }
+    a.t += dt * speed;
     if (a.t >= wsAnimTime(a)) { ws.anims.splice(ws.anims.indexOf(a), 1); wsAnimEnd(a); }
   }
-  const poses = ws.anims.map(a => ({ a, pose: wsPose(a) }));
+  const poses = ws.anims.filter(a => a.active).map(a => { const pose = wsPose(a); a.p = pose.p; return { a, pose }; });
   const ease = 1 - Math.exp(-dt * 16);
   ws.tubes.forEach((_, i) => {
     ws.slosh[i] = (ws.slosh[i] || 0) * Math.exp(-dt * 2.6);
-    if (!ws.anims.some(a => a.from === i)) ws.lift[i] += ((i === ws.sel ? w * 0.45 : 0) - ws.lift[i]) * ease;
+    if (!wsFlying(i)) ws.lift[i] += ((i === ws.sel ? w * 0.45 : 0) - ws.lift[i]) * ease;
     if (ws.cork[i] != null && !ws.burst[i] && ws.t - ws.cork[i] > 0.2) { ws.burst[i] = true; wsBurst(i); }
   });
   withCtx(c, () => {
@@ -5162,7 +5188,7 @@ function wsDraw(dt) {
       c.globalAlpha = 1;
     }
     ws.tubes.forEach((_, i) => {
-      if (ws.anims.some(a => a.from === i)) return;
+      if (wsFlying(i)) return;
       const p = ws.layout[i], cy = wsCupY(i), h = wsCupH(i);
       let x = p.x;
       const sh = ws.shake[i] != null ? ws.t - ws.shake[i] : 99;
@@ -5174,11 +5200,10 @@ function wsDraw(dt) {
       const ap = ws.appear[i] != null ? ws.t - ws.appear[i] : 99;
       if (ap < 0.45) { const k = Math.max(0.01, wsBack(Math.min(1, ap / 0.45))); sx *= k; sy *= k; }
       const into = poses.find(q => q.a.to === i);
-      const removed = into ? into.a.amt * (1 - into.pose.p) : 0;
       if (into && into.pose.pouring) ws.slosh[i] = Math.max(ws.slosh[i], 0.7);
       c.save();
       c.translate(x + w / 2, y + h); c.scale(sx, sy); c.translate(-(x + w / 2), -(y + h));
-      wsDrawCup(c, i, x, y, wsLevels(i, removed, 0, 0), 0);
+      wsDrawCup(c, i, x, y, wsLevels(i), 0);
       if (ws.cork[i] != null && ws.done.has(i)) wsDrawCork(c, i, x, y);
       c.restore();
     });
@@ -5201,8 +5226,7 @@ function wsDraw(dt) {
       }
       c.save();
       c.translate(pose.lx, pose.ly); c.rotate(pose.ang); c.translate(-pose.Lx, 0);
-      const lv = wsLevels(a.from, 0, a.amt * (1 - pose.p), a.color);
-      wsDrawCup(c, a.from, 0, 0, lv, pose.ang);
+      wsDrawCup(c, a.from, 0, 0, wsLevels(a.from), pose.ang);
       c.restore();
     }
     // droplets, confetti and stars

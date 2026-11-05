@@ -69,8 +69,9 @@ Na tela inicial, o botão **Mais jogos** abre:
   fase misteriosa: só a camada de cima aparece, e cada cor escondida se revela quando chega ao topo. Tem desfazer,
   recomeçar e um copinho extra pequeno, de 1 camada, para quando não houver mais jogadas. Desfazer custa 2 moedas e
   o copinho extra custa 10. O copinho voa, inclina e despeja com a água sempre reta, e o copinho completo ganha uma rolha
-  que cai quicando. Um resolvedor testou todas as 100 fases,
-  e cada uma tem solução.
+  que cai quicando. Dá para erguer outro copinho enquanto um despeja: o despejo novo espera a vez se usar um copinho
+  ainda em movimento, e tudo acelera quando há vários na fila. Um resolvedor testou todas as 100 fases, e cada uma
+  tem solução.
 - **Jogo da velha:** você contra o robô, em fácil, médio ou difícil. No difícil ele joga perfeito e nunca perde
   (verificado em todas as partidas possíveis). Vitórias dão moedas.
 
