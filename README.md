@@ -50,7 +50,8 @@ Para jogar no navegador, abra `index.html`. Não há dependências nem etapa de 
 Na tela inicial, o botão **Mais jogos** abre:
 
 - **Encaixe:** arraste as peças para um tabuleiro 8×8; linhas e colunas completas somem. Cada vez que o tabuleiro fica
-  totalmente vazio, o tema de fundo muda (8 temas para colecionar; o botão Tema troca entre os já ganhos). As peças usam o
+  totalmente vazio, o tema de fundo muda (8 temas para colecionar; o botão Tema troca entre os já ganhos). Se passar 5
+  minutos jogando sem limpar tudo, o tema muda sozinho; o botão Tema mostra quanto falta. As peças usam o
   estilo escolhido na loja, o recorde e a partida em andamento ficam salvos, e cada 100 pontos vira 1 moeda. As peças
   encaixam como ímã na casa livre mais próxima, e quando falta pouco para completar uma linha ou coluna o sorteio costuma
   trazer uma peça que completa (de preferência a que limpa mais linhas de uma vez).

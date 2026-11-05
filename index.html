@@ -817,7 +817,7 @@ body[data-bg="sketch"] {
     <div class="pz-stat"><small>Pontos</small><b id="pzScore">0</b></div>
     <div class="pz-stat"><small>Recorde</small><b id="pzBest">0</b></div>
     <button class="pz-theme" id="pzTheme" type="button" aria-label="Trocar tema">
-      <i id="pzThemeSwatch"></i><span><small>Tema</small><b id="pzThemeName">Aurora</b></span>
+      <i id="pzThemeSwatch"></i><span><small id="pzThemeTimer">Tema</small><b id="pzThemeName">Aurora</b></span>
     </button>
   </div>
   <div class="pz-stage" id="pzStage"><canvas id="pzCanvas" aria-label="Tabuleiro do Encaixe"></canvas></div>
@@ -1994,8 +1994,11 @@ const WORLDS = [
   { from: 276, name: 'Espelho' },
 ];
 const COIN_CELL = 5;
-const APP_VERSION = '3.7';
+const APP_VERSION = '3.8';
 const CHANGELOG = [
+  { v: '3.8', items: [
+    'Encaixe: se você passar 5 minutos jogando sem limpar o tabuleiro inteiro, o tema muda sozinho. O botão Tema mostra quanto falta.',
+  ] },
   { v: '3.7', items: [
     'O Junta-Junta agora se chama Ball Merge e ganhou capa nova.',
     'Jogo novo em Mais jogos: Um Traço. Comece na bolinha e ligue todas as casas com um traço só, sem passar duas vezes.',
@@ -3174,7 +3177,7 @@ $('optNews').addEventListener('click', () => { sfx.pick(); openNews(true); });
 /* ---------- Mais jogos ---------- */
 const GAMES_KEY = 'blocksolve:games';
 const games = {
-  pzBest: 0, pzTheme: 0, pzUnlocked: 1, pzSave: null, mgBest: 0, olBest: 0, olLevel: 1,
+  pzBest: 0, pzTheme: 0, pzUnlocked: 1, pzSave: null, pzThemeTime: 0, mgBest: 0, olBest: 0, olLevel: 1,
   ttt: { easy: [0, 0, 0], medium: [0, 0, 0], hard: [0, 0, 0] }, tttLevel: 'easy',
 };
 function loadGames() {
@@ -3182,6 +3185,7 @@ function loadGames() {
     const g = JSON.parse(localStorage.getItem(GAMES_KEY) || 'null');
     if (!g || typeof g !== 'object') return;
     if (Number.isFinite(g.pzBest)) games.pzBest = g.pzBest;
+    if (Number.isFinite(g.pzThemeTime)) games.pzThemeTime = Math.max(0, Math.min(g.pzThemeTime, PZ_THEME_EVERY));
     if (Number.isFinite(g.mgBest)) games.mgBest = g.mgBest;
     if (Number.isInteger(g.olBest)) games.olBest = Math.max(0, Math.min(g.olBest, 100));
     if (Number.isInteger(g.olLevel)) games.olLevel = Math.max(1, Math.min(g.olLevel, 100));
@@ -3492,11 +3496,31 @@ function pzPlace(idx, gx, gy) {
   if (!pz.pieces.some(q => q && pzFitsAnywhere(q))) { pz.over = true; setTimeout(pzGameOver, 800); }
   pzHud(); pzSave();
 }
-// Whole board empty: bonus, celebration and the next background theme.
-function pzFullClear() {
+// Next background theme: unlocks the next one until all are collected, then cycles.
+const PZ_THEME_EVERY = 300;   // seconds of play without a full clear before the theme changes anyway
+function pzNextTheme() {
   if (games.pzUnlocked < PZ_THEMES.length) { games.pzTheme = games.pzUnlocked; games.pzUnlocked++; }
   else games.pzTheme = (games.pzTheme + 1) % PZ_THEMES.length;
-  pzApplyTheme();
+  games.pzThemeTime = 0;
+  pzApplyTheme(); saveGames();
+}
+// Five minutes of play without clearing the board: a new theme as a little treat.
+function pzThemeClock(dt) {
+  if (pz.over || document.visibilityState === 'hidden') return;
+  games.pzThemeTime = (games.pzThemeTime || 0) + dt;
+  pz.clockSave = (pz.clockSave || 0) + dt;
+  if (games.pzThemeTime >= PZ_THEME_EVERY) {
+    pzNextTheme();
+    pz.banner = { t: 0, text: 'Tema novo!', sub: `5 minutos jogando · ${PZ_THEMES[games.pzTheme].name}` };
+    sfx.swap(); sfx.pick(); buzz([20, 30, 20]);
+  } else if (pz.clockSave > 5) { pz.clockSave = 0; saveGames(); }
+  const left = Math.max(0, Math.ceil(PZ_THEME_EVERY - games.pzThemeTime));
+  const label = `Tema · ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+  if (pz.clockLabel !== label) { pz.clockLabel = label; $('pzThemeTimer').textContent = label; }
+}
+// Whole board empty: bonus, celebration and the next background theme.
+function pzFullClear() {
+  pzNextTheme();
   pz.banner = { t: 0, text: 'Tudo limpo!', sub: `+300 · tema ${PZ_THEMES[games.pzTheme].name}` };
   sfx.win(); buzz([30, 40, 30, 40, 60]);
   const palette = Object.values(COLORS).flatMap(c => [c.base, c.light]);
@@ -3606,6 +3630,7 @@ function pzOpen() {
   });
 }
 function pzUpdate(dt) {
+  pzThemeClock(dt);
   for (const f of pz.fx) f.t += dt;
   pz.fx = pz.fx.filter(f => f.t < 0.35);
   for (const p of pz.pops) p.t += dt;
