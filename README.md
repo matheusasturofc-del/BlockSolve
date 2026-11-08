@@ -41,7 +41,7 @@ Esvazie o tabuleiro para passar de nível.
 | Bloco elástico | 480 | Volta para onde estava se for solto sem sair do tabuleiro. |
 | Parede estreita | 500 | Só deixa passar blocos de até um certo número de casas. |
 | Bloco rei | 520 | Só sai quando for o último bloco da cor dele. |
-| Blocos amigos | 540 | O bloco amigo só sai enquanto o outro coração ainda estiver no tabuleiro. |
+| Blocos amigos | 540 | O bloco de coração vazio espera o amigo: só sai depois que o de coração cheio sair. |
 | Bloco dia e noite | 560 | Só sai de dia (sol); a cada jogada vira dia ou noite. |
 | Parede dorminhoca | 580 | Fica fechada e só abre depois de algumas jogadas. |
 | Bloco tartaruga | 600 | Anda no máximo algumas casas por arrasto. |
