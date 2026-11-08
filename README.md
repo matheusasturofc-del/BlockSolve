@@ -35,15 +35,25 @@ Esvazie o tabuleiro para passar de nível.
 | Bloco seta | 360 | Só anda na direção da seta e nunca volta. |
 | Bloco pisca-cor | 380 | Troca entre duas cores a cada jogada; a bolinha mostra a próxima cor. |
 | Bloco com bateria | 400 | Só anda o número de casas da bateria, contando o caminho mais curto. |
+| Bloco dorminhoco | 420 | Está dormindo e só acorda depois de algumas jogadas. |
+| Parede que fecha | 440 | Tem um relógio: fecha de vez depois de algumas jogadas. |
+| Parede dupla | 460 | Tem duas cores e aceita blocos de qualquer uma delas. |
+| Bloco elástico | 480 | Volta para onde estava se for solto sem sair do tabuleiro. |
+| Parede estreita | 500 | Só deixa passar blocos de até um certo número de casas. |
+| Bloco rei | 520 | Só sai quando for o último bloco da cor dele. |
+| Blocos amigos | 540 | O bloco amigo só sai enquanto o outro coração ainda estiver no tabuleiro. |
+| Bloco dia e noite | 560 | Só sai de dia (sol); a cada jogada vira dia ou noite. |
+| Parede dorminhoca | 580 | Fica fechada e só abre depois de algumas jogadas. |
+| Bloco tartaruga | 600 | Anda no máximo algumas casas por arrasto. |
 
 A partir da bomba, cada mecânica nova estreia exatamente 20 níveis depois da anterior.
 
 ## Conteúdo
 
-- Abertura com a animação da marca MiR COiSAS (linha, M, i, R, pingo do i e COiSAS), depois tela de carregamento, tela inicial (Jogar / Loja / Opções) e seleção de níveis em 16 mundos, tela de novidades a cada atualização e dedicatória para a família.
-- **400 níveis** de campanha com dificuldade crescente. Ao vencer o último aparece a mensagem de fim de jogo.
+- Abertura com a animação da marca MiR COiSAS (linha, M, i, R, pingo do i e COiSAS), depois tela de carregamento, tela inicial (Jogar / Loja / Opções) e seleção de níveis em 24 mundos, tela de novidades a cada atualização e dedicatória para a família.
+- **600 níveis** de campanha com dificuldade crescente. Ao vencer o último aparece a mensagem de fim de jogo.
 - **Modo infinito** liberado desde o começo: começa fácil e vai trazendo todas as mecânicas.
-- Todo nível tem solução garantida pelo gerador, conferida reproduzindo a solução planejada de cada um; os 400 também foram jogados por um robô arrastando com o mouse, tanto seguindo a dica quanto sem estratégia (sempre tirando o bloco mais fácil).
+- Todo nível tem solução garantida pelo gerador, conferida reproduzindo a solução planejada de cada um; os 600 também foram jogados por um robô arrastando com o mouse, tanto seguindo a dica quanto sem estratégia (sempre tirando o bloco mais fácil).
 - **Loja:** fundos Padrão, Colorido, Desenho, Noite e Oceano; peças Padrão, Colorido, Desenho, Neon e Pixel.
 - Opções: som, vibração e apagar progresso. Progresso, moedas e compras ficam salvos no aparelho.
 - Botões no jogo: **Desfazer**, **Reiniciar** e **Dica** (a primeira de cada nível é grátis, depois 10 moedas; cada nível vale 20). A dica segue a solução planejada do nível enquanto ela ainda vale.
