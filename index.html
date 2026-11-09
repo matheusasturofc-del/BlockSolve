@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>BlockSolve</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,7 +32,8 @@
   box-sizing: border-box;
 }
 *, *::before, *::after { box-sizing: border-box; }
-html, body { height: 100%; }
+/* scrolling yes, zooming no (no pinch, no double-tap zoom) */
+html, body { height: 100%; touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   --page-bg: radial-gradient(120% 80% at 50% 0%, var(--sky-2), var(--sky));
   --page-color: var(--sky);
@@ -481,7 +482,7 @@ body[data-bg="sketch"] {
 }
 .ws-bar { display: flex; justify-content: center; margin-top: -4px; }
 .ws-tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-#wsCanvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: manipulation; display: block; }
+#wsCanvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: pan-x pan-y; display: block; }
 .lvl.ws-mystery { background: #e7dcff; box-shadow: 0 4px 0 #b9a4ec; }
 .lvl.ws-mystery small { font-size: .7rem; margin-left: 1px; color: #6b3fd1; }
 .lvl.ws-mystery.done { background: #d9f5e5; }
@@ -2717,8 +2718,11 @@ const WORLDS = [
   { from: 576, name: 'Passo de tartaruga' },
 ];
 const COIN_CELL = 5;
-const APP_VERSION = '4.3';
+const APP_VERSION = '4.4';
 const CHANGELOG = [
+  { v: '4.4', items: [
+    'A tela não dá mais zoom sem querer: nem com dois dedos, nem com toque duplo. A rolagem das listas continua normal.',
+  ] },
   { v: '4.3', items: [
     '200 níveis novos no jogo principal, do 401 ao 600, em oito mundos novos.',
     'Dez mecânicas novas, uma a cada 20 níveis: bloco dorminhoco (420), parede que fecha (440), parede dupla (460), bloco elástico (480), parede estreita (500), bloco rei (520), blocos amigos (540), bloco dia e noite (560), parede dorminhoca (580) e bloco tartaruga (600).',
@@ -7607,6 +7611,13 @@ function playBrandIntro(done) {
   el.addEventListener('pointerdown', finish, { once: true });
   setTimeout(finish, reduceMotion ? 1200 : 4300);
 }
+// No accidental zoom, even where the page sits inside another page (where the viewport tag has
+// no say): two-finger gestures, Safari's pinch events, ctrl + wheel and ctrl + plus/minus.
+document.addEventListener('touchstart', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+document.addEventListener('touchmove', e => { if (e.touches.length > 1 || (e.scale && e.scale !== 1)) e.preventDefault(); }, { passive: false });
+for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
+window.addEventListener('wheel', e => { if (e.ctrlKey || e.metaKey) e.preventDefault(); }, { passive: false });
+document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && ['+', '-', '=', '0', '_'].includes(e.key)) e.preventDefault(); });
 window.claude?.hot?.snapshot?.(() => ({ n: state.n, best: state.best, coins: state.coins, sound: state.sound, screen: state.screen }));
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 

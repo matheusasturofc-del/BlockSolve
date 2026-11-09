@@ -36,6 +36,9 @@ public class MainActivity extends Activity {
         s.setAllowFileAccess(true);
         s.setSupportZoom(false);
         s.setBuiltInZoomControls(false);
+        s.setDisplayZoomControls(false);
+        s.setUseWideViewPort(true);           // so the page's "no zoom" viewport rule applies
+        s.setLoadWithOverviewMode(false);
         s.setTextZoom(100);
 
         web.setWebViewClient(new WebViewClient());
