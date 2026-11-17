@@ -2754,12 +2754,14 @@ const WORLDS = [
   { from: 576, name: 'Passo de tartaruga' },
 ];
 const COIN_CELL = 5;
-const APP_VERSION = '4.5';
+const APP_VERSION = '4.6';
 const CHANGELOG = [
+  { v: '4.6', items: [
+    'O bloco não continua mais andando sozinho quando o dedo fica na borda da tela. Para ter mais espaço para o dedo, vire o celular.',
+  ] },
   { v: '4.5', items: [
     'Agora dá para jogar com o celular deitado. No jogo principal o tabuleiro fica no meio, com espaço dos dois lados para o dedo, e os outros jogos também se ajeitam.',
-    'Bloco espelho: se o dedo chegar na borda da tela e ficar parado ali, o bloco continua andando. Antes, alguns blocos espelho perto da borda não tinham como chegar à saída.',
-    'O bloco espelho não vem mais junto com vidro ou elástico, e o nível 535 foi refeito.',
+    'O bloco espelho não vem mais junto com vidro ou elástico, então sempre dá para mexer nele aos poucos. O nível 535 foi refeito.',
   ] },
   { v: '4.4', items: [
     'A tela não dá mais zoom sem querer: nem com dois dedos, nem com toque duplo. A rolagem das listas continua normal.',
@@ -3471,7 +3473,7 @@ canvas.addEventListener('pointerdown', e => {
     b, pid: e.pointerId, occ: b.ghost ? stoneOcc() : occ, fullOcc: occ, lastFree: [b.x, b.y], sx0: b.x, sy0: b.y,
     open: axisGates(openGates(), b.axis), locked: axisGates(state.gates.filter(g => !isOpen(g)), b.axis),
     offX: p.x - (geo.bx + b.x * geo.cs), offY: p.y - (geo.by + b.y * geo.cs),
-    cx: e.clientX, cy: e.clientY, ex: 0, ey: 0, edgeT: 0,
+    cx: e.clientX, cy: e.clientY,
     fx: b.x, fy: b.y, cellX: b.x, cellY: b.y, tx: b.x, ty: b.y, path: null, blocked: false,
     snap: snapshot(), bumped: false, warned: false, reach: null, charge: Infinity,
   };
@@ -3580,13 +3582,11 @@ canvas.addEventListener('pointermove', e => {
   d.cx = e.clientX; d.cy = e.clientY;
   aimDrag(d);
 });
-// Where the block should go for the finger at (d.cx, d.cy). A finger held at the edge of the
-// screen keeps going that way (d.ex, d.ey): a mirror block near a side would otherwise need a
-// finger far off the screen.
+// Where the block should go for the finger at (d.cx, d.cy).
 function aimDrag(d) {
   const r = canvas.getBoundingClientRect();
   const p = { x: d.cx - r.left, y: d.cy - r.top };
-  let tx = (p.x - d.offX - geo.bx) / geo.cs + (d.ex || 0), ty = (p.y - d.offY - geo.by) / geo.cs + (d.ey || 0);
+  let tx = (p.x - d.offX - geo.bx) / geo.cs, ty = (p.y - d.offY - geo.by) / geo.cs;
   if (d.b.mirror) { tx = 2 * d.sx0 - tx; ty = 2 * d.sy0 - ty; }
   const ax = d.b.axis;
   if (ax === 'h') ty = d.fy; else if (ax === 'v') tx = d.fx;
@@ -3596,19 +3596,6 @@ function aimDrag(d) {
   d.tx = tx; d.ty = ty;
   d.path = null;
   drive(d);
-}
-const EDGE_PX = 28, EDGE_SPEED = 5;   // cells per second while the finger rests at an edge
-function edgePush(d, dt) {
-  if (d.cx === undefined) return;
-  const w = window.innerWidth, h = window.innerHeight;
-  const dx = d.cx < EDGE_PX ? -1 : d.cx > w - EDGE_PX ? 1 : 0, dy = d.cy < EDGE_PX ? -1 : d.cy > h - EDGE_PX ? 1 : 0;
-  if (!dx && !dy) { d.edgeT = 0; return; }
-  // wait a moment so a quick swipe past the edge does not run away
-  d.edgeT = (d.edgeT || 0) + dt;
-  if (d.edgeT < 0.15) return;
-  d.ex = (d.ex || 0) + dx * EDGE_SPEED * dt; d.ey = (d.ey || 0) + dy * EDGE_SPEED * dt;
-  if (d.b.mirror && !state.edgeTold) { state.edgeTold = true; toast('Segure o dedo na borda e o bloco continua andando.'); }
-  aimDrag(d);
 }
 // Slide the dragged block towards the finger, as far as it fits.
 function drive(d) {
@@ -6263,7 +6250,7 @@ function update(dt) {
     }
     if (b.poof) { b.poof.t += dt; if (b.poof.t >= 0.4) { b.poof = null; b.removed = true; } continue; }
     if (b.gone) continue;
-    if (state.drag && state.drag.b === b) { edgePush(state.drag, dt); if (state.drag) pathAssist(state.drag, dt); if (state.drag) { b.rx = state.drag.fx; b.ry = state.drag.fy; } }
+    if (state.drag && state.drag.b === b) { pathAssist(state.drag, dt); if (state.drag) { b.rx = state.drag.fx; b.ry = state.drag.fy; } }
     else { b.rx += (b.x - b.rx) * k; b.ry += (b.y - b.ry) * k; }
     if (b.shake > 0) b.shake = Math.max(0, b.shake - dt);
     const frozen = isFrozen(b);
