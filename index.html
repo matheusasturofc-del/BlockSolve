@@ -1684,8 +1684,7 @@ function assignCracks(stones, blocks, spec, rnd) {
 // Ghost blocks slide through other blocks; mirror blocks move the opposite way to the finger.
 function assignGhostsAndMirrors(blocks, spec, rnd) {
   for (const b of shuffle(blocks.filter(x => !x.layer), rnd).slice(0, spec.ghosts || 0)) b.ghost = 1;
-  // never glass or spring as well: a mirror block may need several drags, as the finger runs out of screen
-  for (const b of shuffle(blocks.filter(x => !x.ghost && !x.axis && !x.glass && !x.spring), rnd).slice(0, spec.mirrors || 0)) b.mirror = 1;
+  for (const b of shuffle(blocks.filter(x => !x.ghost && !x.axis), rnd).slice(0, spec.mirrors || 0)) b.mirror = 1;
 }
 // Chained block: locked until another block, which leaves earlier in the guaranteed order,
 // carries its silver key off the board. keyTo holds the chained block's id + 1.
@@ -2480,7 +2479,7 @@ const LEVELS = /*LEVELS-START*/[
   {"W":7,"H":9,"g":[["top",4,3,"teal",0],["bottom",4,2,"green",0],["right",7,2,"orange",0],["bottom",1,3,"pink",0],["left",6,2,"blue",0],["right",5,2,"yellow",0],["right",1,2,"orange",0],["left",0,2,"teal",0]],"b":[["blue",1,6,"0,0;1,0;0,1",0,0,"h",0],["yellow",1,1,"0,0;1,0;1,1",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],["teal",3,5,"0,0;0,1;0,2;1,2",0,0,0,0],["orange",4,5,"0,0;1,0;2,0;0,1",0,0,0,0],["blue",5,0,"0,0",0,0,0,0],["yellow",5,1,"0,0",0,0,0,0],["green",6,0,"0,0",0,0,0,0],["orange",1,8,"0,0;1,0;2,0",0,0,"h",0],["orange",4,0,"0,0;0,1",0,0,0,0],["green",6,6,"0,0;0,1;0,2",5,0,0,0],["blue",0,1,"0,0;0,1",0,0,0,0],["orange",0,4,"0,0;1,0;2,0;3,0",0,0,0,0],["orange",4,3,"2,0;0,1;1,1;2,1",0,0,0,0],["blue",0,5,"0,0",0,0,0,0],["orange",4,3,"0,0;1,0",0,0,0,0]],"s":[[2,3],[1,0],[3,0]],"c":[[3,1],[0,0]]},
   {"W":7,"H":9,"g":[["right",1,4,"teal",0,0,0,["teal","green"],0,0,0,0,2],["left",3,4,"red",0],["right",6,3,"teal",0,0,0,0,0,0,17],["top",3,3,"orange",0],["bottom",2,3,"purple",1],["left",7,2,"blue",2,0,0,0,0,0,0,"purple"],["left",1,2,"red",0]],"b":[["red",4,1,"0,0;1,0;2,0;1,1;1,2",0,0,0,0],["teal",6,0,"0,0",0,0,0,0],["purple",0,1,"0,0;1,0",0,0,0,0],["blue",2,0,"0,0;0,1",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],["green",0,3,"0,0;0,1",2,0,0,0,0,0,0,0,0,0,0,0,0,"red"],["red",6,3,"0,0",0,1,0,0],["teal",1,1,"2,0;0,1;1,1;2,1;2,2",0,0,0,0],["blue",5,4,"1,0;0,1;1,1",0,0,0,0],["red",3,6,"0,0;0,1;1,1;2,1",0,0,0,0],["red",2,4,"2,0;0,1;1,1;2,1",0,2,0,0],["red",0,7,"0,0;1,0;0,1",0,0,0,0],["red",4,8,"0,0",0,0,0,0],["red",1,5,"0,0;0,1;1,1",1,0,0,0,0,0,0,0,0,0,0,0,0,"teal"],["teal",5,6,"0,0",0,0,"R",0]],"s":[[5,8]],"c":[[4,0],[1,3]]},
   {"W":7,"H":9,"g":[["bottom",0,4,"yellow",2,0,0,0,0,0,0,"purple"],["bottom",4,2,"purple",0],["left",5,2,"blue",1,0,0,0,0,0,0,"orange"],["left",0,2,"orange",0],["right",6,3,"teal",0,0,0,0,0,0,15],["top",3,2,"pink",0],["right",2,4,"purple",0],["top",5,2,"pink",0]],"b":[["yellow",4,0,"1,0;2,0;0,1;1,1;2,1",0,0,0,0],["purple",3,0,"0,0;1,0",0,0,0,0],["blue",4,3,"0,0;1,0;2,0;1,1",0,0,0,0],["orange",4,6,"0,0;1,0;0,1;1,1;2,1",0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],["yellow",2,1,"1,0;0,1;1,1",0,0,0,0],["teal",2,0,"0,0",3,0,0,0,0,0,0,0,0,0,0,0,0,"purple"],["yellow",1,2,"0,0;0,1;1,1;1,2",0,0,0,0],["purple",1,0,"0,0",0,2,0,0],["orange",3,3,"0,0;0,1",2,0,0,0,0,0,0,0,0,0,0,0,0,"purple"],["orange",6,8,"0,0",0,0,0,0],["orange",3,6,"0,0;0,1",0,0,0,0],["purple",2,1,"0,0",0,0,0,0],["purple",0,1,"0,0",0,0,0,11,0,0,0,0,0,0,0,0,0,0,["purple","teal"]],["purple",0,4,"0,0;1,0",0,0,0,0],["purple",3,5,"0,0",0,0,0,0],["purple",0,5,"0,0;1,0",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],["purple",2,5,"0,0",0,0,0,0]],"s":[[4,5]],"c":[[0,3],[1,1],[0,8],[0,0]]},
-  {"W":7,"H":9,"g":[["top",2,4,"teal",0,0,0,0,0,0,16],["bottom",0,2,"blue",0],["right",3,4,"green",0],["left",5,3,"orange",0,0,0,0,0,0,0,"yellow"],["left",2,2,"pink",0],["bottom",4,2,"yellow",0],["right",7,2,"blue",0,0,0,0,0,0,0,"teal"],["left",0,2,"blue",0]],"b":[["orange",5,0,"0,0;1,0;0,1;0,2",0,0,0,0],["pink",6,7,"0,0;0,1",0,0,0,0],["yellow",4,2,"0,0;0,1;1,1;0,2;1,2",0,0,"v",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],["teal",4,6,"0,0;1,0;0,1",0,0,0,0],["blue",2,5,"0,0;1,0;2,0;1,1",0,0,0,0],["pink",1,0,"0,0;1,0;2,0;0,1;1,1;2,1",0,0,0,0,0,0,0,0,0,0,0,0,1],["orange",2,2,"0,0;0,1;1,1",3,0,0,0],["pink",0,7,"0,0;0,1",0,0,0,0],["orange",0,2,"0,0;1,0",0,0,0,0],["orange",5,7,"0,0",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],["yellow",3,4,"0,0",0,0,0,0],["orange",5,8,"0,0",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],["yellow",0,4,"0,0",0,0,0,0],["pink",4,8,"0,0",0,0,0,0],["orange",0,4,"1,0;0,1;1,1",0,0,0,0]],"s":[[1,7],[6,3],[6,5]],"c":[[3,8],[3,2],[2,6]]},
+  {"W":7,"H":9,"g":[["top",2,4,"teal",0,0,0,0,0,0,16],["bottom",0,2,"blue",0],["right",3,4,"green",0],["left",5,3,"orange",0,0,0,0,0,0,0,"yellow"],["left",2,2,"pink",0],["bottom",4,2,"yellow",0],["right",7,2,"blue",0,0,0,0,0,0,0,"teal"],["left",0,2,"blue",0]],"b":[["orange",5,0,"0,0;1,0;0,1;0,2",0,0,0,0],["pink",6,7,"0,0;0,1",0,0,0,0],["yellow",4,2,"0,0;0,1;1,1;0,2;1,2",0,0,"v",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],["teal",4,6,"0,0;1,0;0,1",0,0,0,0],["blue",2,5,"0,0;1,0;2,0;1,1",0,0,0,0],["pink",1,0,"0,0;1,0;2,0;0,1;1,1;2,1",0,0,0,0],["orange",2,2,"0,0;0,1;1,1",3,0,0,0],["pink",0,7,"0,0;0,1",0,0,0,0],["orange",0,2,"0,0;1,0",0,0,0,0],["orange",5,7,"0,0",0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1],["yellow",3,4,"0,0",0,0,0,0],["orange",5,8,"0,0",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],["yellow",0,4,"0,0",0,0,0,0],["pink",4,8,"0,0",0,0,0,0],["orange",0,4,"1,0;0,1;1,1",0,0,0,0]],"s":[[1,7],[6,3],[6,5]],"c":[[3,8],[3,2],[2,6]]},
   {"W":7,"H":9,"g":[["right",4,4,"green",0],["bottom",5,2,"purple",0,0,0,0,0,0,0,0,3],["bottom",2,2,"orange",0],["left",5,2,"blue",0],["top",2,4,"red",0],["top",0,2,"pink",0],["right",1,2,"purple",0]],"b":[["pink",4,6,"0,0;0,1;0,2",0,0,0,0],["green",0,1,"0,0;1,0;0,1;1,1",0,0,0,0],["purple",2,1,"0,0;1,0;2,0;0,1",0,0,"h",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],["blue",2,5,"0,0;1,0;2,0;3,0",0,0,"h",0,3],["purple",2,8,"0,0;1,0",0,0,0,0],["green",0,6,"0,0;0,1",0,0,0,0],["pink",0,3,"0,0;1,0",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],["purple",3,3,"0,0;0,1",0,0,0,0],["red",5,4,"0,0;1,0;1,1",0,0,0,0,0,0,0,0,0,0,0,0,1],["purple",4,3,"0,0;1,0;0,1",0,0,0,0],["purple",3,2,"0,0;1,0;2,0",0,0,0,0,0,0,2],["red",6,1,"0,0;0,1",0,0,0,0],["pink",6,0,"0,0",0,0,0,0],["pink",4,0,"0,0;1,0",1,0,0,0],["purple",5,6,"0,0;1,0;0,1",0,0,0,0]],"s":[[2,7]],"c":[[6,7],[5,1],[2,0],[1,8]]},
   {"W":7,"H":9,"g":[["top",4,3,"pink",0],["left",3,2,"teal",0,0,0,0,0,0,0,"pink",2],["top",0,2,"blue",0],["left",5,4,"yellow",0],["bottom",3,2,"orange",0],["bottom",1,2,"green",0],["right",4,3,"pink",0]],"b":[["orange",1,0,"0,0;0,1",0,0,0,0],["green",5,0,"0,0;1,0;0,1;0,2;1,2",0,0,0,0],["pink",1,6,"0,0;1,0;0,1;0,2;1,2",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],["teal",3,8,"0,0;1,0",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],["pink",0,2,"1,0;0,1;1,1;2,1",0,0,0,0],["yellow",2,0,"0,0;1,0",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7],["pink",3,1,"0,0;1,0",0,0,0,0],["pink",1,4,"0,0;1,0;2,0",1,0,0,0,0,0,0,0,0,0,0,0,0,"yellow",0,0,1],["yellow",2,2,"0,0;1,0",0,0,0,0],["pink",4,2,"0,0;0,1",0,0,0,0],["blue",0,1,"0,0;0,1",0,0,0,0],["pink",4,3,"1,0;0,1;1,1;1,2",0,0,0,0],["pink",0,6,"0,0",0,0,0,0],["teal",6,4,"0,0",0,0,0,0],["teal",6,5,"0,0",0,0,0,0]],"s":[[4,6]],"c":[[2,7],[0,0],[3,7]]},
   {"W":7,"H":9,"g":[["top",3,4,"purple",0],["right",3,3,"red",0],["right",7,2,"orange",0,0,0,0,0,0,7],["bottom",0,3,"yellow",0,0,0,0,0,0,0,"pink"],["left",0,4,"green",0],["bottom",3,3,"pink",0],["top",0,3,"purple",0],["left",7,2,"red",0,0,0,0,0,0,0,0,3]],"b":[["red",4,7,"0,0;1,0;1,1",0,0,"h",0],["yellow",2,0,"1,0;1,1;0,2;1,2;2,2",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],["green",1,0,"1,0;0,1;1,1",0,0,"h",0],["pink",0,1,"0,0;0,1;0,2",0,0,0,0],["purple",3,7,"0,0;0,1;1,1",1,0,0,0,0,0,0,0,0,0,0,0,0,"orange"],["red",0,5,"1,0;0,1;1,1;0,2",0,0,0,0],["yellow",6,1,"0,0;0,1;0,2;0,3",0,0,0,0],["purple",2,7,"0,0;0,1",0,0,0,0],["red",1,3,"0,0;1,0;2,0",0,0,0,0],["red",6,0,"0,0",0,0,0,0,0,0,0,0,7],["purple",2,5,"0,0;0,1",0,0,0,0],["orange",0,5,"0,0",0,0,0,0],["purple",4,3,"0,0;0,1;0,2",1,0,0,0],["purple",6,6,"0,0;0,1",0,0,0,0]],"s":[[4,1]],"c":[[5,3],[1,8],[0,8]]},
@@ -2757,11 +2756,10 @@ const COIN_CELL = 5;
 const APP_VERSION = '4.6';
 const CHANGELOG = [
   { v: '4.6', items: [
-    'O bloco não continua mais andando sozinho quando o dedo fica na borda da tela. Para ter mais espaço para o dedo, vire o celular.',
+    'Os blocos espelho e o nível 535 voltaram a ser exatamente como antes. Continua dando para virar o celular.',
   ] },
   { v: '4.5', items: [
     'Agora dá para jogar com o celular deitado. No jogo principal o tabuleiro fica no meio, com espaço dos dois lados para o dedo, e os outros jogos também se ajeitam.',
-    'O bloco espelho não vem mais junto com vidro ou elástico, então sempre dá para mexer nele aos poucos. O nível 535 foi refeito.',
   ] },
   { v: '4.4', items: [
     'A tela não dá mais zoom sem querer: nem com dois dedos, nem com toque duplo. A rolagem das listas continua normal.',
@@ -3473,7 +3471,6 @@ canvas.addEventListener('pointerdown', e => {
     b, pid: e.pointerId, occ: b.ghost ? stoneOcc() : occ, fullOcc: occ, lastFree: [b.x, b.y], sx0: b.x, sy0: b.y,
     open: axisGates(openGates(), b.axis), locked: axisGates(state.gates.filter(g => !isOpen(g)), b.axis),
     offX: p.x - (geo.bx + b.x * geo.cs), offY: p.y - (geo.by + b.y * geo.cs),
-    cx: e.clientX, cy: e.clientY,
     fx: b.x, fy: b.y, cellX: b.x, cellY: b.y, tx: b.x, ty: b.y, path: null, blocked: false,
     snap: snapshot(), bumped: false, warned: false, reach: null, charge: Infinity,
   };
@@ -3579,13 +3576,7 @@ function checkGates(d, tx, ty) {
 canvas.addEventListener('pointermove', e => {
   const d = state.drag;
   if (!d || e.pointerId !== d.pid) return;
-  d.cx = e.clientX; d.cy = e.clientY;
-  aimDrag(d);
-});
-// Where the block should go for the finger at (d.cx, d.cy).
-function aimDrag(d) {
-  const r = canvas.getBoundingClientRect();
-  const p = { x: d.cx - r.left, y: d.cy - r.top };
+  const p = pointerPos(e);
   let tx = (p.x - d.offX - geo.bx) / geo.cs, ty = (p.y - d.offY - geo.by) / geo.cs;
   if (d.b.mirror) { tx = 2 * d.sx0 - tx; ty = 2 * d.sy0 - ty; }
   const ax = d.b.axis;
@@ -3596,7 +3587,7 @@ function aimDrag(d) {
   d.tx = tx; d.ty = ty;
   d.path = null;
   drive(d);
-}
+});
 // Slide the dragged block towards the finger, as far as it fits.
 function drive(d) {
   const tx = d.tx, ty = d.ty;
